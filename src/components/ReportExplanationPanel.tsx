@@ -12,10 +12,12 @@ import type { ReportPipelineResultPartial } from "@/types/report";
 interface ReportExplanationPanelProps {
   result: ReportPipelineResultPartial;
   isComplete?: boolean;
+  /** Intégré dans le chat : pas de scroll propre, padding réduit */
+  embedded?: boolean;
 }
 
 /** Affiche les 4 blocs du pipeline : extraction résumée, vulgarisation, validation, questions pour le médecin (en direct si stream) */
-const ReportExplanationPanel = ({ result, isComplete = true }: ReportExplanationPanelProps) => {
+const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }: ReportExplanationPanelProps) => {
   const { extraction, vulgarization, validationOk, questions } = result;
   const hasVulgarization = vulgarization != null && vulgarization !== "";
   const hasQuestions = questions != null && questions.length > 0;
@@ -28,7 +30,9 @@ const ReportExplanationPanel = ({ result, isComplete = true }: ReportExplanation
   ];
 
   return (
-    <div className="flex flex-col gap-4 p-4 pb-0 overflow-y-auto">
+    <div
+      className={`flex flex-col gap-4 ${embedded ? "p-4 pt-2 pb-2 overflow-visible" : "p-4 pb-0 overflow-y-auto"}`}
+    >
       {/* Ligne du temps parcours */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
         <span className="font-medium text-foreground">Rapport reçu</span>
