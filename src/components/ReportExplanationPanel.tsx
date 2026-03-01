@@ -29,6 +29,22 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
     "Ce que vous pouvez faire",
   ];
 
+  /** Enlève en début de bloc un éventuel doublon du titre (ex. "Ce que le médecin en conclut :") pour éviter la répétition avec le libellé affiché au-dessus. */
+  const stripLabelFromBlock = (text: string, label: string) => {
+    let t = text.trim();
+    if (!label) return t;
+    const prefixes = [label + " :", label + ":", label + " : ", label + "\n", label];
+    for (const p of prefixes) {
+      if (t.startsWith(p)) return t.slice(p.length).trim();
+    }
+    // Première ligne = libellé seul (avec ou sans deux-points)
+    const firstLine = t.split("\n")[0].trim();
+    if (firstLine === label || firstLine === label + " :" || firstLine === label + ":") {
+      return t.slice(firstLine.length).trimStart();
+    }
+    return t;
+  };
+
   return (
     <div
       className={`flex flex-col gap-4 ${embedded ? "p-4 pt-2 pb-2 overflow-visible" : "p-4 pb-0 overflow-y-auto"}`}
@@ -112,7 +128,7 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
                   {blockLabels[i] || `Bloc ${i + 1}`}
                 </p>
                 <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                  {block.trim()}
+                  {stripLabelFromBlock(block, blockLabels[i] ?? "")}
                 </p>
               </div>
             ))
