@@ -5,8 +5,10 @@ import {
   Sparkles,
   AlertCircle,
   ChevronRight,
+  ImageIcon,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import ImageWithLegends from "@/components/ImageWithLegends";
 import type { ReportPipelineResultPartial } from "@/types/report";
 
 interface ReportExplanationPanelProps {
@@ -18,9 +20,11 @@ interface ReportExplanationPanelProps {
 
 /** Affiche les 4 blocs du pipeline : extraction résumée, vulgarisation, validation, questions pour le médecin (en direct si stream) */
 const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }: ReportExplanationPanelProps) => {
-  const { extraction, vulgarization, validationOk, questions } = result;
+  const { extraction, vulgarization, validationOk, questions, legendItems } = result;
   const hasVulgarization = vulgarization != null && vulgarization !== "";
   const hasQuestions = questions != null && questions.length > 0;
+  const hasLegendItems = Array.isArray(legendItems) && legendItems.length > 0;
+  const firstLegendItem = hasLegendItems ? legendItems[0] : null;
 
   const blocks = hasVulgarization ? vulgarization.split(/\s*---\s*/).filter(Boolean) : [];
   const blockLabels = [
@@ -88,6 +92,31 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
       )}
 
       {/* Les images légendées ne sont affichées qu’à gauche (onglet Images). */}
+      {hasLegendItems && firstLegendItem && (
+        <div className="rounded-xl border border-border/60 bg-card shadow-gm-soft overflow-hidden">
+          <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
+            <ImageIcon className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Graphique légendé
+            </span>
+          </div>
+          <div className="p-4">
+            {firstLegendItem.legendes && firstLegendItem.legendes.length > 0 ? (
+              <ImageWithLegends
+                imageUrl={firstLegendItem.imageUrl}
+                legendes={firstLegendItem.legendes}
+                alt="Image d'imagerie légendée"
+                className="max-h-[min(50vh,400px)]"
+              />
+            ) : (
+              <div className="flex items-center justify-center py-8 text-muted-foreground text-sm">
+                <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                Légendes en cours de génération…
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* 2) Vulgarisation (3 blocs) — affichée uniquement après réponses au contexte et analyse */}
       {hasVulgarization && (

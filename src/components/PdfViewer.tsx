@@ -6,12 +6,14 @@ interface PdfViewerProps {
   onUnderstandReport?: (reportText: string) => void;
   /** Images d'imagerie (radio/IRM) ajoutées en plus du rapport — pour les légendes. Appelé avec les data URLs. */
   onLegendImages?: (dataUrls: string[]) => void;
+  /** Source image du rapport quand le document est une photo (pas un PDF). Permet au parent d’appeler l’API légendes. */
+  onReportImageSource?: (dataUrl: string | null) => void;
   isSubmitting?: boolean;
 }
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-const PdfViewer = ({ onUnderstandReport, onLegendImages, isSubmitting = false }: PdfViewerProps) => {
+const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, isSubmitting = false }: PdfViewerProps) => {
   const [file, setFile] = useState<File | null>(null);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -30,10 +32,14 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, isSubmitting = false }:
         setFile(selected);
         setPdfUrl(URL.createObjectURL(selected));
         setImageUrl(null);
+        onReportImageSource?.(null);
       } else if (selected.type.startsWith("image/")) {
         setFile(selected);
         setImageUrl(URL.createObjectURL(selected));
         setPdfUrl(null);
+        const reader = new FileReader();
+        reader.onload = () => onReportImageSource?.(reader.result as string);
+        reader.readAsDataURL(selected);
       }
     }
   };
@@ -58,14 +64,19 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, isSubmitting = false }:
     e.target.value = "";
     if (!files?.length) return;
     const urls = await readFilesAsDataUrls(files);
-    setLegendDataUrls((prev) => [...prev, ...urls]);
-    onLegendImages?.([...legendDataUrls, ...urls]);
+    setLegendDataUrls((prev) => {
+      const next = [...prev, ...urls];
+      onLegendImages?.(next);
+      return next;
+    });
   };
 
   const removeLegendImage = (index: number) => {
-    const next = legendDataUrls.filter((_, i) => i !== index);
-    setLegendDataUrls(next);
-    onLegendImages?.(next);
+    setLegendDataUrls((prev) => {
+      const next = prev.filter((_, i) => i !== index);
+      onLegendImages?.(next);
+      return next;
+    });
   };
 
   const handleUnderstandReport = async () => {

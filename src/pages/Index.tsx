@@ -91,6 +91,8 @@ const Index = () => {
   const [patientContext, setPatientContext] = useState<PatientContext>({});
   /** Images d'imagerie (radio/IRM) ajoutées en plus du rapport — pour les légendes */
   const [legendImageDataUrls, setLegendImageDataUrls] = useState<string[]>([]);
+  /** Image du rapport quand le document est une photo (pas un PDF) — utilisée pour les légendes */
+  const [reportImageDataUrl, setReportImageDataUrl] = useState<string | null>(null);
 
   /** Phase 1 : extraction seule pour obtenir le type d'examen et les questions de contexte */
   const handleUnderstandReport = useCallback(async (reportText: string) => {
@@ -154,18 +156,20 @@ const Index = () => {
           }
           if (event === "done") {
             const fullResult = data as ReportPipelineResult;
+            const allImagesForLegends =
+              reportImageDataUrl ? [reportImageDataUrl, ...legendImageDataUrls] : legendImageDataUrls;
             setPipelineResult({
               ...fullResult,
               legendItems:
-                legendImageDataUrls.length > 0
-                  ? legendImageDataUrls.map((url) => ({ imageUrl: url, legendes: undefined }))
+                allImagesForLegends.length > 0
+                  ? allImagesForLegends.map((url) => ({ imageUrl: url, legendes: undefined }))
                   : undefined,
             });
             setLoading(false);
-            if (legendImageDataUrls.length > 0 && fullResult.extraction) {
+            if (allImagesForLegends.length > 0 && fullResult.extraction) {
               const extractionPlain = getSafeExtraction(fullResult.extraction);
               Promise.all(
-                legendImageDataUrls.map((url) =>
+                allImagesForLegends.map((url) =>
                   fetch(`${API_BASE}/api/report/legendes`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -203,7 +207,7 @@ const Index = () => {
       setLoading(false);
     }
     },
-    [pipelineResult?.extraction, patientContext, legendImageDataUrls]
+    [pipelineResult?.extraction, patientContext, legendImageDataUrls, reportImageDataUrl]
   );
 
   const handlePatientContextChange = useCallback((id: string, value: string) => {
@@ -240,6 +244,7 @@ const Index = () => {
             <PdfViewer
               onUnderstandReport={handleUnderstandReport}
               onLegendImages={setLegendImageDataUrls}
+              onReportImageSource={setReportImageDataUrl}
               isSubmitting={loading}
             />
           </LeftPanel>

@@ -61,13 +61,13 @@ const LeftPanel = ({ children, legendItems }: LeftPanelProps) => {
                     imageUrl={currentLegend.imageUrl}
                     legendes={currentLegend.legendes}
                     alt={`Image d'imagerie ${legendItems.length > 1 ? legendIndex + 1 : ""}`.trim()}
-                    className="w-full max-w-lg"
+                    className="w-full h-full max-w-4xl min-h-[min(70vh,800px)]"
                   />
                 ) : (
                   <img
                     src={currentLegend.imageUrl}
                     alt="Image d'imagerie"
-                    className="max-w-full max-h-full object-contain rounded-lg"
+                    className="max-w-full max-h-[min(70vh,800px)] w-full max-w-4xl object-contain rounded-lg"
                   />
                 )
               )}
