@@ -81,7 +81,7 @@ const LeftPanel = ({ children, legendItems }: LeftPanelProps) => {
                 onClick={() => setLegendIndex((i) => Math.max(0, i - 1))}
                 disabled={legendIndex === 0}
                 className="p-2 rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                aria-label="Image précédente"
+                aria-label="Previous image"
               >
                 <ChevronLeft className="w-5 h-5" />
               </button>
@@ -93,7 +93,7 @@ const LeftPanel = ({ children, legendItems }: LeftPanelProps) => {
                 onClick={() => setLegendIndex((i) => Math.min(legendItems.length - 1, i + 1))}
                 disabled={legendIndex === legendItems.length - 1}
                 className="p-2 rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                aria-label="Image suivante"
+                aria-label="Next image"
               >
                 <ChevronRight className="w-5 h-5" />
               </button>

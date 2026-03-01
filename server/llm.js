@@ -110,7 +110,7 @@ async function chatCompletionGemini(messages, options = {}) {
     clearTimeout(timeoutId);
     if (err?.name === "AbortError") {
       throw new Error(
-        "L'API Google (Gemma) n'a pas répondu à temps. Vérifiez votre clé GOOGLE_API_KEY."
+        "Google API (Gemma) did not respond in time. Check your GOOGLE_API_KEY."
       );
     }
     throw err;
@@ -165,7 +165,7 @@ async function chatCompletionOpenAI(messages, options = {}) {
   } catch (err) {
     if (err?.name === "AbortError") {
       throw new Error(
-        "Le serveur LLM n'a pas répondu à temps. Vérifiez votre configuration (clé API ou Ollama)."
+        "The LLM server did not respond in time. Check your configuration (API key or Ollama)."
       );
     }
     throw err;
@@ -218,7 +218,7 @@ export async function chatCompletion(messages, options = {}) {
 
   if (!apiKey && !isLocal) {
     throw new Error(
-      "Définissez GOOGLE_API_KEY (Google AI Studio) pour Gemma 3 27B, ou OPENAI_API_KEY / Ollama pour un autre modèle."
+      "Set GOOGLE_API_KEY (Google AI Studio) for Gemma 3 27B, or OPENAI_API_KEY / Ollama for another model."
     );
   }
 

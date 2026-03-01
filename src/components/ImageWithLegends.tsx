@@ -29,7 +29,7 @@ function chooseLegendSide(x2: number, y2: number): LegendSide {
 }
 
 /** Affiche une image avec légendes en dehors de l'image et flèches pointant vers la zone (x2,y2). */
-const ImageWithLegends = ({ imageUrl, legendes, alt = "Image légendée", className = "" }: ImageWithLegendsProps) => {
+const ImageWithLegends = ({ imageUrl, legendes, alt = "Labelled image", className = "" }: ImageWithLegendsProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
   const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });

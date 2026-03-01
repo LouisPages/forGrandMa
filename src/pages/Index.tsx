@@ -109,13 +109,13 @@ const Index = () => {
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Erreur ${res.status}`);
+        throw new Error(data.error || `Error ${res.status}`);
       }
       const data = await res.json();
       setPipelineResult({ extraction: data.extraction });
       setContextQuestions(data.contextQuestions ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Erreur lors de l'extraction.");
+      setError(e instanceof Error ? e.message : "Error during extraction.");
     } finally {
       setLoading(false);
     }
@@ -145,7 +145,7 @@ const Index = () => {
         clearTimeout(timeoutId);
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || `Erreur ${res.status}`);
+          throw new Error(data.error || `Error ${res.status}`);
         }
         const reader = res.body?.getReader();
         if (!reader) throw new Error("Stream non disponible");
@@ -154,7 +154,7 @@ const Index = () => {
         const hasImagesForStream = allImagesForLegends.length > 0;
         await consumeSSE(reader, (event, data) => {
           if (event === "error") {
-            setError((data as { error?: string }).error ?? "Erreur inconnue");
+            setError((data as { error?: string }).error ?? "Unknown error");
             return;
           }
           if (event === "done") {
@@ -217,7 +217,7 @@ const Index = () => {
         });
       } catch (e) {
       if (e instanceof Error && e.name === "AbortError") {
-        setError("L'analyse a pris trop de temps. Réessayez.");
+        setError("Analysis took too long. Please try again.");
       } else {
         setError(e instanceof Error ? e.message : "Erreur lors du traitement.");
       }
@@ -251,7 +251,7 @@ const Index = () => {
             <h1 className="text-lg font-display font-bold text-foreground tracking-tight leading-tight">
               For <span className="text-gm-gradient">GrandMa</span>
             </h1>
-            <p className="text-xs text-muted-foreground font-medium tracking-wide">Votre rapport médical, expliqué simplement</p>
+            <p className="text-xs text-muted-foreground font-medium tracking-wide">Your medical report, explained simply</p>
           </div>
         </div>
       </header>

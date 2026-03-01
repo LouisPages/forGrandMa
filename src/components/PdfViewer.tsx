@@ -52,7 +52,7 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
           new Promise<string>((resolve, reject) => {
             const r = new FileReader();
             r.onload = () => resolve(r.result as string);
-            r.onerror = () => reject(new Error("Lecture impossible"));
+            r.onerror = () => reject(new Error("Unable to read file"));
             r.readAsDataURL(f);
           })
       )
@@ -104,20 +104,20 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
 
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Erreur lors de l'OCR.");
+          throw new Error(data.error || "Error during OCR.");
         }
         const data = await res.json();
         text = data.text;
       }
 
       if (!text || !text.trim()) {
-        setExtractError("Aucun texte n'a pu être extrait de ce document.");
+        setExtractError("No text could be extracted from this document.");
         return;
       }
       onUnderstandReport(text);
     } catch (e) {
       setExtractError(
-        e instanceof Error ? e.message : "Impossible d'analyser le document."
+        e instanceof Error ? e.message : "Unable to analyse the document."
       );
     } finally {
       setExtracting(false);
@@ -131,7 +131,7 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           {imageUrl ? <Camera className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
           <span className="font-medium truncate max-w-[150px]">
-            {file ? file.name : "Aucun document"}
+            {file ? file.name : "No document"}
           </span>
         </div>
         <div className="flex gap-2">
@@ -140,14 +140,14 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity border border-border"
           >
             <Camera className="w-3.5 h-3.5" />
-            Photo rapport
+            Report photo
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-gm-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-gm"
           >
             <Upload className="w-3.5 h-3.5" />
-            PDF rapport
+            Report PDF
           </button>
         </div>
         <input
@@ -178,7 +178,7 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
             />
           ) : imageUrl ? (
             <div className="w-full h-full flex items-center justify-center p-4">
-              <img src={imageUrl} alt="Rapport" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
+              <img src={imageUrl} alt="Report" className="max-w-full max-h-full object-contain rounded-lg shadow-lg" />
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full gap-4 text-muted-foreground p-4">
@@ -186,8 +186,8 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
                 <FileText className="w-10 h-10 text-accent" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-foreground">Votre rapport (PDF ou photo du rapport)</p>
-                <p className="text-xs mt-1">Puis ajoutez éventuellement des images radio/IRM</p>
+                <p className="text-sm font-medium text-foreground">Your report (PDF or photo of the report)</p>
+                <p className="text-xs mt-1">You can also add X-ray/MRI images</p>
               </div>
               <div className="flex flex-col gap-2 w-full max-w-[200px]">
                 <button
@@ -195,14 +195,14 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
                   className="px-5 py-2.5 text-sm font-medium rounded-xl bg-secondary text-secondary-foreground hover:opacity-90 transition-opacity border border-border"
                 >
                   <Camera className="w-4 h-4 inline mr-2" />
-                  Photo du rapport
+                  Report photo
                 </button>
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   className="px-5 py-2.5 text-sm font-medium rounded-xl bg-gm-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-gm"
                 >
                   <Upload className="w-4 h-4 inline mr-2" />
-                  PDF du rapport
+                  Report PDF
                 </button>
               </div>
             </div>
@@ -213,13 +213,13 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
         <div className="flex-shrink-0 border-t border-border/60 p-3 bg-card/80">
           <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
             <ImagePlus className="w-3.5 h-3.5" />
-            Images d'imagerie (radio, IRM…) — optionnel
+            Imaging (X-ray, MRI…) — optional
           </p>
           <div className="flex flex-wrap gap-2 items-start">
             {legendDataUrls.map((url, i) => (
               <div key={i} className="relative group">
                 <img src={url} alt={`Imagerie ${i + 1}`} className="w-16 h-16 object-cover rounded-lg border border-border" />
-                <button type="button" onClick={() => removeLegendImage(i)} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-80 group-hover:opacity-100" aria-label="Retirer">
+                <button type="button" onClick={() => removeLegendImage(i)} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-80 group-hover:opacity-100" aria-label="Remove">
                   <X className="w-3 h-3" />
                 </button>
               </div>
@@ -228,10 +228,10 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
               type="button"
               onClick={() => legendInputRef.current?.click()}
               className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-sm font-medium text-muted-foreground hover:bg-secondary/50 hover:text-foreground transition-colors"
-              title="Ajouter des images radio/IRM à légender"
+              title="Add X-ray/MRI images to label"
             >
               <ImagePlus className="w-4 h-4" />
-              Ajouter des images (radio, IRM)
+              Add images (X-ray, MRI)
             </button>
           </div>
           <input ref={legendInputRef} type="file" accept="image/*" multiple onChange={handleLegendImagesChange} className="hidden" />
@@ -248,10 +248,10 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
           >
             <Sparkles className="w-4 h-4" />
             {extracting
-              ? (imageUrl ? "Lecture du rapport (IA)…" : "Extraction du texte…")
+              ? (imageUrl ? "Reading report (AI)…" : "Extracting text…")
               : isSubmitting
-                ? "Analyse en cours…"
-                : "Comprendre ce rapport"}
+                ? "Analysis in progress…"
+                : "Understand this report"}
           </button>
         </div>
       </div>

@@ -19,7 +19,7 @@ import {
 } from "./prompts.js";
 
 const FALLBACK_VULGARIZATION =
-  "Les éléments de votre rapport doivent être interprétés par votre médecin. Nous n'avons pas pu générer une explication simplifiée pour le moment. Demandez des précisions à votre médecin lors de votre prochain rendez-vous.";
+  "Your report findings should be interpreted by your doctor. We could not generate a simplified explanation at this time. Ask your doctor for clarification at your next appointment.";
 
 /**
  * Parse la sortie extraction en JSON. En cas d'échec, retourne un objet minimal.
@@ -70,7 +70,7 @@ function sendSSE(res, event, data) {
  */
 export async function runExtractionOnly(reportText) {
   if (!reportText || !reportText.trim()) {
-    throw new Error("Le texte du rapport est vide.");
+    throw new Error("The report text is empty.");
   }
   const text = reportText.trim().slice(0, 15000);
   const extractionRaw = await chatCompletion(
@@ -147,7 +147,7 @@ export async function runPipelineFromExtraction(extraction, options = {}) {
   }
 
   if (!validationOk) {
-    vulgarization = vulgarization + "\n\nDemandez des précisions à votre médecin lors de votre prochain rendez-vous.";
+    vulgarization = vulgarization + "\n\nAsk your doctor for clarification at your next appointment.";
   }
   await onProgress?.("validation", { extraction, vulgarization, validationOk });
 
@@ -166,7 +166,7 @@ export async function runPipelineFromExtraction(extraction, options = {}) {
     );
     questions = parseQuestions(questionsRaw);
   } catch {
-    questions = ["Que signifie ce rapport pour mon cas ?", "Quels sont les prochains rendez-vous à prévoir ?"];
+    questions = ["What does this report mean for my case?", "What follow-up appointments should I expect?"];
   }
   await onProgress?.("questions", { extraction, vulgarization, validationOk, questions });
 
@@ -188,7 +188,7 @@ export async function runPipelineFromExtraction(extraction, options = {}) {
 export async function runPipeline(reportText, options = {}) {
   const { onProgress } = options;
   if (!reportText || !reportText.trim()) {
-    throw new Error("Le texte du rapport est vide.");
+    throw new Error("The report text is empty.");
   }
 
   const text = reportText.trim().slice(0, 15000); // limite raisonnable

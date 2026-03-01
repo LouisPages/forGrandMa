@@ -196,7 +196,7 @@ app.post("/api/chat", async (req, res) => {
   } catch (err) {
     console.error("Chat error:", err.message);
     return res.status(500).json({
-      error: err.message || "Erreur lors de la génération de la réponse.",
+      error: err.message || "Error generating response.",
     });
   }
 });
@@ -220,7 +220,7 @@ app.post("/api/report/legendes", async (req, res) => {
   } catch (err) {
     console.error("Legendes error:", err.message);
     return res.status(500).json({
-      error: err.message || "Erreur lors de la génération des légendes.",
+      error: err.message || "Error generating legends.",
     });
   }
 });
@@ -244,7 +244,7 @@ app.post("/api/report/adapt-vulgarization", async (req, res) => {
   } catch (err) {
     console.error("Adapt vulgarization error:", err.message);
     return res.status(500).json({
-      error: err.message || "Erreur lors de l'adaptation de l'explication aux légendes.",
+      error: err.message || "Error adapting explanation to legends.",
     });
   }
 });
@@ -260,14 +260,14 @@ app.post("/api/report/ocr", async (req, res) => {
     if (!image || typeof image !== "string") {
       return res.status(400).json({ error: "image (base64 data url) is required" });
     }
-    console.log("Démarrage de l'OCR pour une image de taille:", image.length);
+    console.log("Starting OCR for image size:", image.length);
     const text = await performOCR(image);
-    console.log("OCR réussi, texte extrait (aperçu):", text.slice(0, 100));
+    console.log("OCR success, extracted text (preview):", text.slice(0, 100));
     return res.json({ text });
   } catch (err) {
-    console.error("Détail de l'erreur OCR:", err);
+    console.error("OCR error detail:", err);
     return res.status(500).json({
-      error: err.message || "Erreur lors de l'OCR de l'image.",
+      error: err.message || "Error during image OCR.",
     });
   }
 });

@@ -118,10 +118,10 @@ const ChatPanel = ({
       }
       if (pipelineResult?.legendItems && pipelineResult.legendItems.length > 0) {
         const allLabels = pipelineResult.legendItems.flatMap((it) => it.legendes?.map((l) => l.label).filter(Boolean) ?? []);
-        contextStr += `\n\nImages légendées : des images d'imagerie (radio/IRM) accompagnent ce rapport et sont en lien avec l'explication vulgarisée. Légendes : ${allLabels.length > 0 ? allLabels.map((l, i) => `${i + 1}) « ${l} »`).join(" ; ") : "en cours"}. Quand c'est pertinent, fais référence à ces images et légendes (ex. \"comme indiqué sur l'image, la zone « … » correspond à…\").`;
+        contextStr += `\n\nLegend images: imaging (X-ray/MRI) images accompany this report and relate to the simplified explanation. Labels: ${allLabels.length > 0 ? allLabels.map((l, i) => `${i + 1}) « ${l} »`).join(" ; ") : "in progress"}. When relevant, refer to these images and labels (e.g. \"as shown on the image, the area « … » corresponds to…\").`;
       }
       if (Object.keys(patientContext).length > 0) {
-        contextStr += `\n\nContexte patient (réponses aux questions de contexte) :\n${Object.entries(patientContext)
+        contextStr += `\n\nPatient context (answers to context questions):\n${Object.entries(patientContext)
           .filter(([, v]) => v != null && String(v).trim() !== "")
           .map(([k, v]) => `${k}: ${String(v).trim()}`)
           .join("\n")}`;
@@ -139,12 +139,12 @@ const ChatPanel = ({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || `Erreur ${res.status}`);
+        throw new Error(data.error || `Error ${res.status}`);
       }
       const data = await res.json();
       setChatMessages((prev) => [
         ...prev,
-        { id: `a-${Date.now()}`, role: "assistant", text: data.reply || "Désolé, je n'ai pas pu répondre." },
+        { id: `a-${Date.now()}`, role: "assistant", text: data.reply || "Sorry, I couldn't reply." },
       ]);
     } catch (e) {
       setChatMessages((prev) => [
@@ -181,7 +181,7 @@ const ChatPanel = ({
           <div className="min-w-0">
             <h2 className="text-sm font-display font-semibold text-primary-foreground tracking-wide flex items-center gap-2">
               <Heart className="w-4 h-4 shrink-0" />
-              Votre assistant santé
+              Your health assistant
             </h2>
             <p className="text-xs text-primary-foreground/70 mt-1">
               {canAsk
@@ -195,8 +195,8 @@ const ChatPanel = ({
             type="button"
             onClick={openSettings}
             className="p-2 rounded-lg text-primary-foreground/80 hover:bg-primary-foreground/15 hover:text-primary-foreground transition-colors shrink-0"
-            title="Contexte patient (réponses pour personnaliser l'explication)"
-            aria-label="Réglages contexte"
+            title="Patient context (answers to personalise the explanation)"
+            aria-label="Context settings"
           >
             <Settings className="w-4 h-4" />
           </button>
@@ -220,14 +220,14 @@ const ChatPanel = ({
                 type="button"
                 onClick={closeSettings}
                 className="p-2 rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors"
-                aria-label="Fermer"
+                aria-label="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <p className="text-xs text-muted-foreground">
-                Ces informations aident à adapter l'explication et les questions pour le médecin. Vous pouvez les modifier ou les effacer.
+                This information helps tailor the explanation and questions for your doctor. You can edit or clear it.
               </p>
               {(contextQuestions?.length ?? 0) > 0 ? (
                 contextQuestions!.map((q) => (
@@ -241,12 +241,12 @@ const ChatPanel = ({
                       value={settingsDraft[q.id] ?? ""}
                       onChange={(e) => setSettingsDraft((prev) => ({ ...prev, [q.id]: e.target.value }))}
                       className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                      placeholder="Votre réponse…"
+                      placeholder="Your answer…"
                     />
                   </div>
                 ))
               ) : (
-                <p className="text-sm text-muted-foreground">Aucune question de contexte pour ce type d'examen.</p>
+                <p className="text-sm text-muted-foreground">No context questions for this exam type.</p>
               )}
             </div>
             <div className="flex gap-2 px-4 py-3 border-t border-border">
@@ -269,7 +269,7 @@ const ChatPanel = ({
                 onClick={saveSettings}
                 className="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-gm-gradient text-primary-foreground shadow-gm hover:opacity-90 transition-opacity"
               >
-                Enregistrer
+                Save
               </button>
             </div>
           </div>
@@ -299,7 +299,7 @@ const ChatPanel = ({
                 </div>
                 <div className="max-w-[85%] px-4 py-3 text-sm leading-relaxed rounded-2xl rounded-tl-md bg-card border border-border/60 text-foreground shadow-gm-soft">
                   <p className="whitespace-pre-wrap break-words">
-                    Bonjour ! 👋 Chargez votre rapport PDF à gauche puis cliquez sur « Comprendre mon rapport ». L'analyse s'affichera ci-dessus, puis vous pourrez poser vos questions ici.
+                    Hello! 👋 Upload your PDF report on the left then click « Understand my report ». The analysis will appear above, then you can ask your questions here.
                   </p>
                 </div>
               </div>
@@ -341,14 +341,14 @@ const ChatPanel = ({
                             value={patientContext[q.id] ?? ""}
                             onChange={(e) => onPatientContextChange?.(q.id, e.target.value)}
                             className="w-full px-3 py-2 text-sm rounded-lg border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50"
-                            placeholder="Votre réponse…"
+                            placeholder="Your answer…"
                           />
                         </div>
                       ))}
                         </div>
                       </>
                     ) : (
-                      <p className="mb-2">Cliquez ci-dessous pour lancer l'explication de votre rapport.</p>
+                      <p className="mb-2">Click below to start the explanation of your report.</p>
                     )}
                     <div className="mt-4">
                       <button
@@ -358,7 +358,7 @@ const ChatPanel = ({
                         className="flex items-center justify-center gap-2 w-full px-4 py-3 rounded-xl bg-gm-gradient text-primary-foreground font-semibold text-sm shadow-gm hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed transition-opacity"
                       >
                         <Sparkles className="w-4 h-4" />
-                        {reportLoading ? "Analyse en cours…" : "Lancer l'analyse"}
+                        {reportLoading ? "Analysis in progress…" : "Run analysis"}
                       </button>
                     </div>
                   </div>
@@ -430,7 +430,7 @@ const ChatPanel = ({
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={
-              canAsk ? "Posez votre question ici…" : "L'analyse doit se terminer avant de poser une question."
+              canAsk ? "Ask your question here…" : "Analysis must finish before you can ask a question."
             }
             rows={1}
             disabled={!canAsk}

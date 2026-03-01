@@ -27,9 +27,9 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
 
   const blocks = hasVulgarization ? vulgarization.split(/\s*---\s*/).filter(Boolean) : [];
   const blockLabels = [
-    "Ce que montrent les images",
-    "Ce que le médecin en conclut",
-    "Ce que vous pouvez faire",
+    "What the images show",
+    "What the doctor concludes",
+    "What you can do",
   ];
 
   /** Enlève en début de bloc un éventuel doublon du titre (ex. "Ce que le médecin en conclut :") pour éviter la répétition avec le libellé affiché au-dessus. */
@@ -54,11 +54,11 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
     >
       {/* Ligne du temps parcours */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-        <span className="font-medium text-foreground">Rapport reçu</span>
+        <span className="font-medium text-foreground">Report received</span>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="font-medium text-primary">Comprendre et préparer</span>
+        <span className="font-medium text-primary">Understand and prepare</span>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span>Prochain rendez-vous</span>
+        <span>Next appointment</span>
       </div>
 
       {/* 1) Vulgarisation (3 blocs) — affichée dès envoi du contexte (loading), puis après adaptation aux légendes ou après analyse */}
@@ -68,19 +68,19 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Explication simple
+              Simple explanation
             </span>
           </div>
           {isComplete && validationOk === true && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Explication vérifiée
+              Explanation verified
             </span>
           )}
           {isComplete && validationOk === false && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <AlertCircle className="w-3.5 h-3.5" />
-              À confirmer avec votre médecin
+              To confirm with your doctor
             </span>
           )}
         </div>
@@ -88,18 +88,18 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
           {explanationLoading && !hasVulgarization ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin shrink-0" />
-              <span>Préparation de l'explication simple…</span>
+              <span>Preparing the simple explanation…</span>
             </div>
           ) : isAdaptingExplanation ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin shrink-0" />
-              <span>Préparation de l'explication à partir de vos images et des légendes…</span>
+              <span>Preparing the explanation from your images and labels…</span>
             </div>
           ) : blocks.length > 0 ? (
             blocks.map((block, i) => (
               <div key={i}>
                 <p className="text-xs font-semibold text-muted-foreground mb-1">
-                  {blockLabels[i] || `Bloc ${i + 1}`}
+                  {blockLabels[i] || `Block ${i + 1}`}
                 </p>
                 <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
                   {stripLabelFromBlock(block, blockLabels[i] ?? "")}
@@ -121,12 +121,12 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
           <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
             <HelpCircle className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Questions à poser à votre médecin
+              Questions to ask your doctor
             </span>
             {!hasQuestions && !isComplete && (
               <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground ml-auto">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                En cours…
+                In progress…
               </span>
             )}
           </div>

@@ -1,45 +1,45 @@
 /**
- * Questions de contexte patient adaptées au type d'examen.
- * Utilisées pour guider la vulgarisation et les questions pour le médecin.
+ * Patient context questions adapted to exam type.
+ * Used to guide simplification and questions for the doctor.
  */
 
 /** @typedef {{ id: string, label: string }} ContextQuestion */
 
-/** Questions génériques (tous types d'examens) */
+/** Generic questions (all exam types) */
 const GENERIC = [
-  { id: "autres_examens_recents", label: "Avez-vous passé d'autres examens d'imagerie récemment ?" },
-  { id: "traitement_en_cours", label: "Prenez-vous des médicaments régulièrement ?" },
-  { id: "objectif_comprendre", label: "Qu'est-ce qui vous préoccupe le plus dans ce rapport ?" },
+  { id: "autres_examens_recents", label: "Have you had other imaging exams recently?" },
+  { id: "traitement_en_cours", label: "Do you take any medication regularly?" },
+  { id: "objectif_comprendre", label: "What concerns you most about this report?" },
 ];
 
-/** Questions adaptées au thorax / poumon */
-const THORACIQUE = [
-  { id: "antecedents_respiratoires", label: "Avez-vous des antécédents respiratoires (asthme, bronchite, etc.) ?" },
-  { id: "tabac", label: "Êtes-vous ou avez-vous été fumeur ?" },
-  { id: "souffle", label: "Avez-vous des difficultés respiratoires ou un traitement pour le souffle ?" },
+/** Questions for chest / lung */
+const THORACIC = [
+  { id: "antecedents_respiratoires", label: "Do you have any respiratory history (asthma, bronchitis, etc.)?" },
+  { id: "tabac", label: "Are you or have you been a smoker?" },
+  { id: "souffle", label: "Do you have breathing difficulties or treatment for shortness of breath?" },
 ];
 
-/** Questions adaptées à l'abdomen */
+/** Questions for abdomen */
 const ABDOMINAL = [
-  { id: "antecedents_digestifs", label: "Avez-vous des antécédents digestifs ou hépatiques ?" },
-  { id: "douleurs_ventre", label: "Avez-vous des douleurs ou gênes abdominales ?" },
+  { id: "antecedents_digestifs", label: "Do you have any digestive or liver history?" },
+  { id: "douleurs_ventre", label: "Do you have any abdominal pain or discomfort?" },
 ];
 
-/** Questions adaptées à l'IRM / neurologie / tête */
-const NEURO_IRM = [
-  { id: "antecedents_neuro", label: "Avez-vous des antécédents neurologiques (migraines, AVC, etc.) ?" },
-  { id: "cephalées", label: "Avez-vous des maux de tête fréquents ?" },
+/** Questions for MRI / neurology / head */
+const NEURO_MRI = [
+  { id: "antecedents_neuro", label: "Do you have any neurological history (migraines, stroke, etc.)?" },
+  { id: "cephalées", label: "Do you have frequent headaches?" },
 ];
 
-/** Questions adaptées à l'échographie */
+/** Questions for ultrasound */
 const ECHO = [
-  { id: "grossesse", label: "Êtes-vous enceinte ou susceptible de l'être ?" },
-  { id: "organe_cible", label: "L'examen concernait-il un organe précis (foie, rein, thyroïde…) ? Lequel ?" },
+  { id: "grossesse", label: "Are you pregnant or could you be?" },
+  { id: "organe_cible", label: "Did the exam focus on a specific organ (liver, kidney, thyroid, etc.)? Which one?" },
 ];
 
 /**
- * Retourne les questions de contexte à afficher pour un type d'examen donné.
- * @param {string} typeExamen - type_examen extrait du rapport (ex. "scanner thoracique")
+ * Returns context questions to show for a given exam type.
+ * @param {string} typeExamen - type_examen from report extraction (e.g. "chest CT", "scanner thoracique")
  * @returns {ContextQuestion[]}
  */
 export function getContextQuestions(typeExamen) {
@@ -49,13 +49,13 @@ export function getContextQuestions(typeExamen) {
   const t = typeExamen.toLowerCase();
   const questions = [...GENERIC];
 
-  if (t.includes("thoracique") || t.includes("thorax") || t.includes("poumon") || t.includes("pulmonaire")) {
-    questions.push(...THORACIQUE);
-  } else if (t.includes("abdominal") || t.includes("abdomen") || t.includes("foie") || t.includes("rein")) {
+  if (t.includes("thoracic") || t.includes("thorax") || t.includes("chest") || t.includes("lung") || t.includes("pulmonary") || t.includes("poumon") || t.includes("pulmonaire")) {
+    questions.push(...THORACIC);
+  } else if (t.includes("abdominal") || t.includes("abdomen") || t.includes("liver") || t.includes("foie") || t.includes("kidney") || t.includes("rein")) {
     questions.push(...ABDOMINAL);
-  } else if (t.includes("irm") || t.includes("céphal") || t.includes("crâne") || t.includes("neuro")) {
-    questions.push(...NEURO_IRM);
-  } else if (t.includes("échographie") || t.includes("echo")) {
+  } else if (t.includes("mri") || t.includes("irm") || t.includes("cephal") || t.includes("head") || t.includes("crâne") || t.includes("neuro") || t.includes("brain")) {
+    questions.push(...NEURO_MRI);
+  } else if (t.includes("ultrasound") || t.includes("échographie") || t.includes("echo") || t.includes("sonography")) {
     questions.push(...ECHO);
   }
 
