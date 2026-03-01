@@ -6,7 +6,8 @@ Backend du pipeline agentique (extraction → vulgarisation → validation → q
 
 1. **Variables d'environnement**  
    À la racine du projet, copier `.env.example` en `.env` et renseigner au minimum :
-   - `GOOGLE_API_KEY` (pour Gemini 3 Fast) ou `OPENAI_API_KEY` (OpenAI ou compatible)
+   - `GOOGLE_API_KEY` (pour Gemma 3 27B) ou `OPENAI_API_KEY` (OpenAI ou compatible)
+
 2. **Dépendances**  
    Depuis la racine du projet :
    ```bash

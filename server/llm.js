@@ -1,11 +1,11 @@
 /**
- * Appel à une API LLM : Google Gemini (Gemini 3 Fast) ou API compatible OpenAI (chat completions).
- * - Si GOOGLE_API_KEY est défini : utilise l'API Gemini avec gemini-3-flash.
+ * Appel à une API LLM : Google Gemini (Gemma 3 27B) ou API compatible OpenAI (chat completions).
+ * - Si GOOGLE_API_KEY est défini : utilise l'API Gemini avec gemma-3-27b-it.
  * - Sinon : OPENAI_API_KEY + OPENAI_API_URL (ex. OpenAI, Ollama).
  */
 
 const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const GEMINI_MODEL = "gemini-3-flash";
+const GEMINI_MODEL = "gemma-3-27b-it";
 
 const getConfig = () => {
   const googleKey = process.env.GOOGLE_API_KEY;
@@ -81,7 +81,7 @@ function toGeminiPayload(messages, generationConfig) {
 }
 
 /**
- * Appel à l'API Gemini (Gemini 3 Fast).
+ * Appel à l'API Gemini (Gemma 3 27B).
  */
 async function chatCompletionGemini(messages, options = {}) {
   const { googleKey } = getConfig();
@@ -110,7 +110,7 @@ async function chatCompletionGemini(messages, options = {}) {
     clearTimeout(timeoutId);
     if (err?.name === "AbortError") {
       throw new Error(
-        "L'API Google (Gemini 3 Fast) n'a pas répondu à temps. Vérifiez votre clé GOOGLE_API_KEY."
+        "L'API Google (Gemma) n'a pas répondu à temps. Vérifiez votre clé GOOGLE_API_KEY."
       );
     }
     throw err;
@@ -187,7 +187,8 @@ async function chatCompletionOpenAI(messages, options = {}) {
 }
 
 /**
- * Effectue l'OCR d'une image (base64) via Gemini 3 Fast (Vision).
+ * Effectue l'OCR d'une image (base64) via Gemma 3 (Vision).
+ * @param {string} base64DataUrl - "data:image/jpeg;base64,..."
  */
 export async function performOCR(base64DataUrl) {
   const prompt = "Veuillez extraire tout le texte lisible de ce document médical. Ne faites aucun commentaire, ne résumez pas, extrayez simplement le texte tel quel (OCR).";
@@ -217,7 +218,7 @@ export async function chatCompletion(messages, options = {}) {
 
   if (!apiKey && !isLocal) {
     throw new Error(
-      "Définissez GOOGLE_API_KEY (Google AI Studio) pour Gemini 3 Fast, ou OPENAI_API_KEY / Ollama pour un autre modèle."
+      "Définissez GOOGLE_API_KEY (Google AI Studio) pour Gemma 3 27B, ou OPENAI_API_KEY / Ollama pour un autre modèle."
     );
   }
 
