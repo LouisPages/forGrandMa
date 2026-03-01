@@ -8,6 +8,7 @@ import {
   EXTRACTION_SYSTEM,
   EXTRACTION_USER,
   VULGARIZATION_SYSTEM,
+  VULGARIZATION_SYSTEM_WITH_CONTEXT,
   VULGARIZATION_USER,
   VULGARIZATION_USER_WITH_CONTEXT,
   VALIDATION_SYSTEM,
@@ -107,19 +108,23 @@ export async function runPipelineFromExtraction(extraction, options = {}) {
   const { onProgress, patientContext = {} } = options;
   const extractionJson = JSON.stringify(extraction, null, 2);
   const contextStr = formatPatientContext(patientContext);
+  const hasContext = contextStr && contextStr.trim().length > 0;
 
-  // 2) Vulgarisation (avec contexte patient si fourni)
+  // 2) Vulgarisation (avec contexte patient si fourni → prompt personnalisé)
   let vulgarization;
   try {
+    const systemContent = hasContext
+      ? `${VULGARIZATION_SYSTEM}\n\n${VULGARIZATION_SYSTEM_WITH_CONTEXT}`
+      : VULGARIZATION_SYSTEM;
     vulgarization = await chatCompletion(
       [
-        { role: "system", content: VULGARIZATION_SYSTEM },
+        { role: "system", content: systemContent },
         {
           role: "user",
           content: VULGARIZATION_USER_WITH_CONTEXT(extractionJson, contextStr),
         },
       ],
-      { max_tokens: 512, temperature: 0.3 }
+      { max_tokens: 600, temperature: 0.3 }
     );
   } catch (e) {
     vulgarization = FALLBACK_VULGARIZATION;

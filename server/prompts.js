@@ -30,13 +30,37 @@ Règles strictes :
   2) "Ce que le médecin en conclut" : reformulation de la conclusion du rapport.
   3) "Ce que vous pouvez faire" : rappel de consulter le médecin (sans conseil médical).`;
 
+/** Système additionnel quand un contexte patient est fourni : personnalisation obligatoire. */
+export const VULGARIZATION_SYSTEM_WITH_CONTEXT = `En plus des règles de vulgarisation, quand un contexte patient est fourni tu DOIS personnaliser l'explication :
+- Faire des liens avec sa situation quand c'est pertinent (ex. antécédents respiratoires, ancien fumeur, traitement en cours) : une courte phrase dans le bloc adapté qui rappelle que le médecin tiendra compte de son cas.
+- Répondre à sa préoccupation principale ("objectif_comprendre" / "Qu'est-ce qui vous préoccupe") : dans "Ce que le médecin en conclut" ou "Ce que vous pouvez faire", adresser explicitement cette inquiétude avec bienveillance, sans inventer de fait médical.
+- Utiliser "vous" et "votre situation" pour ancrer l'explication dans son vécu.
+- Ne jamais inventer de fait médical ni de conseil thérapeutique : uniquement relier les constats du rapport à ce qu'il a partagé.`;
+
 export const VULGARIZATION_USER = (extractionJson) =>
   `Vulgarise ce résumé structuré pour un patient. Réponds avec les 3 blocs séparés par "---".\n\n${extractionJson}`;
 
-/** Contexte patient optionnel pour adapter la vulgarisation (réponses aux questions de contexte). */
+/** Contexte patient : vulgarisation personnalisée en fonction des réponses. */
 export const VULGARIZATION_USER_WITH_CONTEXT = (extractionJson, patientContextStr) =>
   patientContextStr
-    ? `Vulgarise ce résumé structuré pour un patient. Tu disposes du contexte patient suivant (réponses à des questions de contexte) pour adapter le ton et les précisions, sans jamais ajouter de diagnostic ni de conseil thérapeutique.\n\nContexte patient :\n${patientContextStr}\n\nRésumé structuré du rapport :\n${extractionJson}\n\nRéponds avec les 3 blocs séparés par "---".`
+    ? `Vulgarise ce résumé structuré pour CE patient en t'appuyant sur le contexte qu'il a fourni ci-dessous.
+
+CONTEXTE PATIENT (réponses aux questions de contexte) — à utiliser pour personnaliser l'explication :
+---
+${patientContextStr}
+---
+
+Résumé structuré du rapport :
+---
+${extractionJson}
+---
+
+Consignes de personnalisation :
+1) Dans "Ce que montrent les images" : si son contexte le permet (antécédents, examens récents, traitement), ajoute une phrase qui relie les constats à sa situation (ex. "Comme vous avez déjà eu une radio récemment, ces images permettent de comparer."). Sans inventer de fait.
+2) Dans "Ce que le médecin en conclut" : si le patient a indiqué une préoccupation (inquiétude, question principale), y répondre avec bienveillance en restant sur le rapport (ex. "Pour votre question sur l'évolution, le rapport mentionne… Votre médecin pourra vous dire ce que cela implique pour vous.").
+3) Dans "Ce que vous pouvez faire" : rappeler la consultation et, si pertinent, mentionner son contexte (ex. "Avec vos antécédents et votre traitement, votre médecin pourra vous donner un avis adapté.").
+
+Réponds avec les 3 blocs séparés par "---". Langage simple, pas de jargon. Aucun diagnostic ni conseil thérapeutique ajouté.`
     : VULGARIZATION_USER(extractionJson);
 
 export const VALIDATION_SYSTEM = `Tu es un relecteur qui vérifie qu'un texte de vulgarisation médicale est sûr.
