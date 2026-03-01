@@ -123,8 +123,8 @@ const ChatPanel = ({ pipelineResult, reportLoading = false }: ChatPanelProps) =>
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!canAsk && pipelineResult) setChatMessages([]);
-  }, [canAsk, pipelineResult]);
+    if (pipelineResult === null) setChatMessages([]);
+  }, [pipelineResult]);
 
   const allMessages = useMemo(
     () => [...reportMessages, ...chatMessages],
