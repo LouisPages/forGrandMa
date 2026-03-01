@@ -1,5 +1,4 @@
 import {
-  FileText,
   CheckCircle2,
   HelpCircle,
   Sparkles,
@@ -16,7 +15,7 @@ interface ReportExplanationPanelProps {
   embedded?: boolean;
 }
 
-/** Affiche les 4 blocs du pipeline : extraction résumée, vulgarisation, validation, questions pour le médecin (en direct si stream) */
+/** Affiche les blocs du pipeline : vulgarisation, validation, questions pour le médecin (en direct si stream) */
 const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }: ReportExplanationPanelProps) => {
   const { extraction, vulgarization, validationOk, questions, legendItems } = result;
   const hasVulgarization = vulgarization != null && vulgarization !== "";
@@ -59,36 +58,7 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
         <span>Prochain rendez-vous</span>
       </div>
 
-      {/* 1) Extraction résumée */}
-      {extraction && (extraction.localisation || extraction.type_examen || extraction.conclusion_rapport) && (
-        <div className="rounded-xl border border-border/60 bg-card shadow-gm-soft overflow-hidden">
-          <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
-            <FileText className="w-3.5 h-3.5 text-primary" />
-            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Résumé du rapport
-            </span>
-          </div>
-          <div className="p-4 space-y-2 text-sm text-foreground">
-            {extraction.type_examen && (
-              <p>
-                <span className="text-muted-foreground">Examen : </span>
-                {extraction.type_examen}
-              </p>
-            )}
-            {extraction.localisation && (
-              <p>
-                <span className="text-muted-foreground">Localisation : </span>
-                {extraction.localisation}
-              </p>
-            )}
-            {extraction.conclusion_rapport && (
-              <p className="leading-relaxed">{extraction.conclusion_rapport}</p>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* 2) Vulgarisation (3 blocs) — affichée après adaptation aux légendes quand il y a des images, sinon après analyse */}
+      {/* 1) Vulgarisation (3 blocs) — affichée après adaptation aux légendes quand il y a des images, sinon après analyse */}
       {(hasVulgarization || isAdaptingExplanation) && (
       <div className="rounded-xl border border-border/60 bg-card shadow-gm-soft overflow-hidden">
         <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
