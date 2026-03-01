@@ -1,5 +1,5 @@
 /**
- * API backend For Grandma: report pipeline + chat.
+ * API backend For GrandMa : pipeline rapport + chat.
  * Aucune persistance ; pas de stockage des rapports ou conversations.
  */
 
@@ -23,17 +23,17 @@ app.use(express.json({ limit: "1mb" }));
 
 /** GET / — page HTML minimale (pas de script, pas d’image) pour éviter la vue JSON du navigateur et les erreurs CSP */
 const ROOT_HTML = `<!DOCTYPE html>
-<html lang="en">
+<html lang="fr">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>For Grandma API</title>
+  <title>For GrandMa API</title>
 </head>
 <body style="font-family:system-ui,sans-serif;max-width:40em;margin:2rem auto;padding:0 1rem;">
-  <h1>For Grandma API</h1>
-  <p>Server is running. Use the app at <strong>http://localhost:8080</strong>.</p>
-  <p>Start the frontend with <code>npm run dev</code></p>
-  <p>Endpoints <code>POST /api/report/understand</code>, <code>POST /api/chat</code>, <code>GET /api/health</code></p>
+  <h1>For GrandMa API</h1>
+  <p>Le serveur est démarré. L'application s'utilise sur <strong>http://localhost:8080</strong>.</p>
+  <p>Lancez le frontend avec : <code>npm run dev</code></p>
+  <p>Endpoints : <code>POST /api/report/understand</code>, <code>POST /api/chat</code>, <code>GET /api/health</code></p>
 </body>
 </html>`;
 
@@ -58,7 +58,7 @@ app.post("/api/report/understand", async (req, res) => {
   } catch (err) {
     console.error("Pipeline error:", err.message);
     return res.status(500).json({
-      error: err.message || "Error processing the report.",
+      error: err.message || "Erreur lors du traitement du rapport.",
     });
   }
 });
@@ -90,7 +90,7 @@ app.post("/api/report/understand-stream", async (req, res) => {
     sendSSE(res, "done", result);
   } catch (err) {
     console.error("Pipeline stream error:", err.message);
-    sendSSE(res, "error", { error: err.message || "Error processing the report." });
+    sendSSE(res, "error", { error: err.message || "Erreur lors du traitement du rapport." });
   } finally {
     res.end();
   }
@@ -126,7 +126,7 @@ app.post("/api/chat", async (req, res) => {
   } catch (err) {
     console.error("Chat error:", err.message);
     return res.status(500).json({
-      error: err.message || "Error generating the response.",
+      error: err.message || "Erreur lors de la génération de la réponse.",
     });
   }
 });
@@ -134,5 +134,5 @@ app.post("/api/chat", async (req, res) => {
 app.get("/api/health", (_, res) => res.json({ ok: true }));
 
 app.listen(PORT, () => {
-  console.log(`For Grandma API listening on http://localhost:${PORT}`);
+  console.log(`For GrandMa API listening on http://localhost:${PORT}`);
 });

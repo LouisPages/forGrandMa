@@ -64,7 +64,7 @@ const Index = () => {
       if (!reader) throw new Error("Stream non disponible");
       await consumeSSE(reader, (event, data) => {
         if (event === "error") {
-          setError((data as { error?: string }).error ?? "Unknown error");
+          setError((data as { error?: string }).error ?? "Erreur inconnue");
           return;
         }
         if (event === "done") {
@@ -81,7 +81,7 @@ const Index = () => {
           "Analysis took too long. Check your GOOGLE_API_KEY (or other API) and that the backend server is running."
         );
       } else {
-        setError(e instanceof Error ? e.message : "Error during processing.");
+        setError(e instanceof Error ? e.message : "Erreur lors du traitement.");
       }
     } finally {
       clearTimeout(timeoutId);
@@ -99,9 +99,9 @@ const Index = () => {
           </div>
           <div>
             <h1 className="text-base font-display font-bold text-foreground tracking-tight leading-tight">
-              For <span className="text-gm-gradient">Grandma</span>
+              For <span className="text-gm-gradient">GrandMa</span>
             </h1>
-            <p className="text-[11px] text-muted-foreground font-medium tracking-wide">Your report, explained simply</p>
+            <p className="text-[11px] text-muted-foreground font-medium tracking-wide">Votre rapport, expliqué simplement</p>
           </div>
         </div>
       </header>

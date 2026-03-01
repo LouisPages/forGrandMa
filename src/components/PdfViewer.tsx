@@ -30,13 +30,13 @@ const PdfViewer = ({ onUnderstandReport, isSubmitting = false }: PdfViewerProps)
     try {
       const text = await extractTextFromPdf(file);
       if (!text.trim()) {
-        setExtractError("No text extracted from this PDF (scanned image?).");
+        setExtractError("Aucun texte extrait de ce PDF (image scannée ?).");
         return;
       }
       onUnderstandReport(text);
     } catch (e) {
       setExtractError(
-        e instanceof Error ? e.message : "Could not extract text from PDF."
+        e instanceof Error ? e.message : "Impossible d'extraire le texte du PDF."
       );
     } finally {
       setExtracting(false);
@@ -50,7 +50,7 @@ const PdfViewer = ({ onUnderstandReport, isSubmitting = false }: PdfViewerProps)
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <FileText className="w-4 h-4" />
           <span className="font-medium truncate max-w-[200px]">
-            {file ? file.name : "No document"}
+            {file ? file.name : "Aucun document"}
           </span>
         </div>
         <button
@@ -84,15 +84,15 @@ const PdfViewer = ({ onUnderstandReport, isSubmitting = false }: PdfViewerProps)
                 <FileText className="w-10 h-10 text-accent" />
               </div>
               <div className="text-center">
-                <p className="text-sm font-medium text-foreground">Upload your medical report</p>
-                <p className="text-xs mt-1">PDF format accepted</p>
+                <p className="text-sm font-medium text-foreground">Chargez votre rapport médical</p>
+                <p className="text-xs mt-1">Format PDF accepté</p>
               </div>
               <button
                 onClick={() => fileInputRef.current?.click()}
                 className="mt-2 px-5 py-2.5 text-sm font-medium rounded-xl bg-gm-gradient text-primary-foreground hover:opacity-90 transition-opacity shadow-gm animate-float-up"
               >
                 <Upload className="w-4 h-4 inline mr-2" />
-                Select a file
+                Sélectionner un fichier
               </button>
             </div>
           )}
@@ -110,10 +110,10 @@ const PdfViewer = ({ onUnderstandReport, isSubmitting = false }: PdfViewerProps)
             >
               <Sparkles className="w-4 h-4" />
               {extracting
-                ? "Extracting text…"
+                ? "Extraction du texte…"
                 : isSubmitting
-                  ? "Analysis in progress…"
-                  : "Understand my report"}
+                  ? "Analyse en cours…"
+                  : "Comprendre mon rapport"}
             </button>
           </div>
         )}

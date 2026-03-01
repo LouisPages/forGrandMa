@@ -24,9 +24,9 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
 
   const blocks = hasVulgarization ? vulgarization.split(/\s*---\s*/).filter(Boolean) : [];
   const blockLabels = [
-    "What the images show",
-    "What the doctor concludes",
-    "What you can do",
+    "Ce que montrent les images",
+    "Ce que le médecin en conclut",
+    "Ce que vous pouvez faire",
   ];
 
   return (
@@ -35,11 +35,11 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
     >
       {/* Ligne du temps parcours */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
-        <span className="font-medium text-foreground">Report received</span>
+        <span className="font-medium text-foreground">Rapport reçu</span>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span className="font-medium text-primary">Understand and prepare</span>
+        <span className="font-medium text-primary">Comprendre et préparer</span>
         <ChevronRight className="w-3.5 h-3.5" />
-        <span>Next appointment</span>
+        <span>Prochain rendez-vous</span>
       </div>
 
       {/* 1) Extraction résumée */}
@@ -48,19 +48,19 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
           <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
             <FileText className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Report summary
+              Résumé du rapport
             </span>
           </div>
           <div className="p-4 space-y-2 text-sm text-foreground">
             {extraction.type_examen && (
               <p>
-                <span className="text-muted-foreground">Exam: </span>
+                <span className="text-muted-foreground">Examen : </span>
                 {extraction.type_examen}
               </p>
             )}
             {extraction.localisation && (
               <p>
-                <span className="text-muted-foreground">Location: </span>
+                <span className="text-muted-foreground">Localisation : </span>
                 {extraction.localisation}
               </p>
             )}
@@ -77,25 +77,25 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
           <div className="flex items-center gap-2">
             <Sparkles className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Simple explanation
+              Explication simple
             </span>
           </div>
           {isComplete && validationOk === true && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-primary">
               <CheckCircle2 className="w-3.5 h-3.5" />
-              Explanation verified
+              Explication vérifiée
             </span>
           )}
           {isComplete && validationOk === false && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <AlertCircle className="w-3.5 h-3.5" />
-              To be confirmed with your doctor
+              À confirmer avec votre médecin
             </span>
           )}
           {!hasVulgarization && (
             <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              In progress…
+              En cours…
             </span>
           )}
         </div>
@@ -103,13 +103,13 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
           {!hasVulgarization ? (
             <p className="text-sm text-muted-foreground flex items-center gap-2">
               <Loader2 className="w-4 h-4 animate-spin shrink-0" />
-              Explanation being written…
+              Explication en cours de rédaction…
             </p>
           ) : blocks.length > 0 ? (
             blocks.map((block, i) => (
               <div key={i}>
                 <p className="text-xs font-semibold text-muted-foreground mb-1">
-                  {blockLabels[i] || `Block ${i + 1}`}
+                  {blockLabels[i] || `Bloc ${i + 1}`}
                 </p>
                 <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
                   {block.trim()}
@@ -130,12 +130,12 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
           <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">
             <HelpCircle className="w-3.5 h-3.5 text-primary" />
             <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-              Questions to ask your doctor
+              Questions à poser à votre médecin
             </span>
             {!hasQuestions && !isComplete && (
               <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground ml-auto">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                In progress…
+                En cours…
               </span>
             )}
           </div>
