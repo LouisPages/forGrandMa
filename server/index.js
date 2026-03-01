@@ -8,7 +8,10 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.join(__dirname, "..", ".env") });
+const envPath = path.join(__dirname, "..", ".env");
+console.log("Loading .env from:", envPath);
+dotenv.config({ path: envPath });
+console.log("GOOGLE_API_KEY loaded:", !!process.env.GOOGLE_API_KEY);
 import express from "express";
 import cors from "cors";
 import { runPipeline, runExtractionOnly, runPipelineFromExtraction, sendSSE } from "./pipeline.js";
@@ -46,6 +49,25 @@ app.get("/", (_, res) => {
 });
 
 /**
+ * GET /api/test-llm — Teste que l'API LLM fonctionne
+ */
+app.get("/api/test-llm", async (req, res) => {
+  try {
+    const result = await chatCompletion(
+      [
+        { role: "system", content: "Tu es un assistant utile." },
+        { role: "user", content: "Dis bonjour en une ligne." },
+      ],
+      { max_tokens: 50, temperature: 0.3 }
+    );
+    return res.json({ success: true, message: result });
+  } catch (err) {
+    console.error("[ERROR] LLM test failed:", err);
+    return res.status(500).json({ error: err.message });
+  }
+});
+
+/**
  * POST /api/report/understand
  * Body: { reportText: string }
  * Returns: { extraction, vulgarization, validationOk, questions }
@@ -59,7 +81,7 @@ app.post("/api/report/understand", async (req, res) => {
     const result = await runPipeline(reportText);
     return res.json(result);
   } catch (err) {
-    console.error("Pipeline error:", err.message);
+    console.error("[ERROR] Pipeline error:", err);
     return res.status(500).json({
       error: err.message || "Erreur lors du traitement du rapport.",
     });
