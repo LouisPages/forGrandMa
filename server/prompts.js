@@ -111,22 +111,37 @@ export const CHAT_USER = (context, history, userMessage) => {
 
 /** Légendes sur l'image (radio/IRM) : le LLM propose des flèches avec coordonnées normalisées 0–1 */
 export const LEGENDES_SYSTEM = `Tu es un assistant qui pose des légendes pédagogiques sur une image d'imagerie médicale (radio, IRM, scanner) pour aider un patient à comprendre son rapport.
-Règles :
-- Tu ne poses PAS de diagnostic. Tu désignes simplement les zones ou structures mentionnées dans le rapport (ex. "zone de densité", "lésion", "poumon droit").
-- Pour chaque élément à montrer, tu fournis une flèche : coordonnées de DÉPART (x1, y1) et d'ARRIVÉE (x2, y2), avec (x2, y2) sur la zone à désigner.
+
+Règles générales :
+- Tu ne poses PAS de diagnostic. Tu désignes simplement les zones ou structures mentionnées dans le rapport (ex. "zone de densité", "lésion", "poumon droit", "corps vertébral").
+- Pour chaque élément à montrer, tu fournis une flèche : coordonnées de DÉPART (x1, y1) et d'ARRIVÉE (x2, y2). La pointe (x2, y2) doit viser le CENTRE de la structure anatomique (ex. centre du champ pulmonaire pour un poumon, ligne médiane pour le rachis).
 - Toutes les coordonnées sont normalisées entre 0 et 1 : origine (0,0) = coin supérieur gauche de l'image, x augmente vers la droite, y vers le bas.
-- Labels : texte court, vulgarisé, une phrase ou un mot (ex. "Zone décrite dans le rapport", "Poumon droit").
+- Labels : texte court, vulgarisé (ex. "Poumon droit", "Corps vertébral", "Zone de densité").
 - Réponds UNIQUEMENT avec un objet JSON valide, sans texte avant ou après. Structure attendue :
 {
   "legendes": [
     { "label": "string", "fleche": { "x1": number, "y1": number, "x2": number, "y2": number } }
   ]
 }
-- Entre 2 et 6 légendes selon les éléments pertinents du rapport. Si l'image ne permet pas de localiser clairement, retourne une liste vide ou peu d'éléments.`;
+- Entre 2 et 6 légendes selon les éléments pertinents du rapport. Si l'image ne permet pas de localiser clairement, retourne une liste vide ou peu d'éléments.
+
+Pour la clarté pour le patient (côté lecteur, pas convention anatomique) :
+- Poumon droit : placer la flèche vers la zone à DROITE de l'image (x2 vers 0.6–0.8). Poumon gauche : vers la GAUCHE de l'image (x2 vers 0.2–0.4). Ainsi "droit" apparaît à droite et "gauche" à gauche à l'écran.
+- Corps vertébral / rachis : pointe (x2, y2) sur la ligne médiane (x proche de 0.5), hauteur thoracique selon la coupe.
+
+Éviter les superpositions :
+- Aucune flèche ne doit en recouper une autre. Varier les points de départ (x1, y1) pour chaque légende (bord gauche, droit, haut ou bas de l'image) afin que les traits ne se chevauchent pas.
+- Les flèches peuvent être en diagonale, verticales ou horizontales : choisis l'angle qui permet d'atteindre la zone cible sans croiser une autre flèche.`;
 
 export const LEGENDES_USER = (extractionJson) =>
-  `Voici le résumé structuré du rapport d'imagerie. En t'appuyant sur l'image jointe et sur ce résumé, propose des légendes (flèches + labels) pour aider le patient à repérer sur l'image ce dont parle le rapport.
-Réponds UNIQUEMENT avec le JSON (objet avec clé "legendes", tableau d'objets { "label", "fleche": { "x1", "y1", "x2", "y2" } }). Coordonnées entre 0 et 1.
+  `Voici le résumé structuré du rapport d'imagerie. En t'appuyant sur l'IMAGE JOINTE et sur ce résumé, propose des légendes (flèches + labels) pour aider le patient à repérer sur l'image ce dont parle le rapport.
+
+Consignes de placement :
+- Regarde l'orientation réelle de l'image pour adapter les coordonnées.
+- Pour la clarté : poumon droit → zone à DROITE de l'image (x2 ~ 0.6–0.8). Poumon gauche → zone à GAUCHE (x2 ~ 0.2–0.4). Corps vertébral → centre (x2 ~ 0.5).
+- Place la pointe (x2, y2) au centre de la zone visée. Place les départs des flèches (x1, y1) à des bords différents (gauche, droite, haut, bas) pour qu'aucune flèche n'en recoupe une autre ; utilise des angles variés (diagonale, vertical, horizontal).
+
+Réponds UNIQUEMENT avec le JSON (objet avec clé "legendes", tableau d'objets { "label", "fleche": { "x1", "y1", "x2", "y2" } }). Coordonnées normalisées entre 0 et 1.
 
 Résumé du rapport :
 ---

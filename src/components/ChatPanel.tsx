@@ -285,6 +285,7 @@ const ChatPanel = ({
                 result={pipelineResult}
                 isComplete={!reportLoading}
                 embedded
+                explanationLoading={reportLoading && !!pipelineResult?.extraction && pipelineResult.vulgarization == null}
               />
             </div>
           )}

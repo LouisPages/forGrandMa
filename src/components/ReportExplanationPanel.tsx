@@ -13,14 +13,17 @@ interface ReportExplanationPanelProps {
   isComplete?: boolean;
   /** Intégré dans le chat : pas de scroll propre, padding réduit */
   embedded?: boolean;
+  /** true dès que le contexte patient a été envoyé et qu'on attend la vulgarisation (affichage immédiat du bloc "Explication simple" en chargement) */
+  explanationLoading?: boolean;
 }
 
 /** Affiche les blocs du pipeline : vulgarisation, validation, questions pour le médecin (en direct si stream) */
-const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }: ReportExplanationPanelProps) => {
+const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, explanationLoading = false }: ReportExplanationPanelProps) => {
   const { extraction, vulgarization, validationOk, questions, legendItems } = result;
   const hasVulgarization = vulgarization != null && vulgarization !== "";
   const hasQuestions = questions != null && questions.length > 0;
   const isAdaptingExplanation = (legendItems?.length ?? 0) > 0 && !hasVulgarization;
+  const showExplanationBlock = hasVulgarization || isAdaptingExplanation || explanationLoading;
 
   const blocks = hasVulgarization ? vulgarization.split(/\s*---\s*/).filter(Boolean) : [];
   const blockLabels = [
@@ -58,8 +61,8 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
         <span>Prochain rendez-vous</span>
       </div>
 
-      {/* 1) Vulgarisation (3 blocs) — affichée après adaptation aux légendes quand il y a des images, sinon après analyse */}
-      {(hasVulgarization || isAdaptingExplanation) && (
+      {/* 1) Vulgarisation (3 blocs) — affichée dès envoi du contexte (loading), puis après adaptation aux légendes ou après analyse */}
+      {showExplanationBlock && (
       <div className="rounded-xl border border-border/60 bg-card shadow-gm-soft overflow-hidden">
         <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -82,7 +85,12 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false }:
           )}
         </div>
         <div className="p-4 space-y-4">
-          {isAdaptingExplanation ? (
+          {explanationLoading && !hasVulgarization ? (
+            <div className="flex items-center gap-3 text-sm text-muted-foreground">
+              <Loader2 className="w-5 h-5 animate-spin shrink-0" />
+              <span>Préparation de l'explication simple…</span>
+            </div>
+          ) : isAdaptingExplanation ? (
             <div className="flex items-center gap-3 text-sm text-muted-foreground">
               <Loader2 className="w-5 h-5 animate-spin shrink-0" />
               <span>Préparation de l'explication à partir de vos images et des légendes…</span>
