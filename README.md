@@ -19,14 +19,8 @@ GOOGLE_API_KEY=votre_cle_ici
 ```
 
 ### 3. Démarrage
-Ouvrez deux terminaux :
+Lancez l'application (frontend + backend) avec :
 
-**Terminal 1 (Backend)** :
-```bash
-npm run dev:server
-```
-
-**Terminal 2 (Frontend)** :
 ```bash
 npm run dev
 ```
