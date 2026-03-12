@@ -1,174 +1,116 @@
-/**
- * Pipeline agentique : Extraction → Vulgarisation → Validation → Questions.
- * Aucune persistance ; tout en mémoire.
- */
-
 import { chatCompletion } from "./llm.js";
 import {
-  EXTRACTION_SYSTEM,
-  EXTRACTION_USER,
-  VULGARIZATION_SYSTEM,
-  VULGARIZATION_SYSTEM_WITH_CONTEXT,
-  VULGARIZATION_USER,
-  VULGARIZATION_USER_WITH_CONTEXT,
-  VALIDATION_SYSTEM,
-  VALIDATION_USER,
-  QUESTIONS_SYSTEM,
-  QUESTIONS_USER,
-  QUESTIONS_USER_WITH_CONTEXT,
+  PROMPT_EXTRACTION,
+  PROMPT_VULGARIZATION,
+  PROMPT_VALIDATION,
+  PROMPT_QUESTIONS,
 } from "./prompts.js";
 
-const FALLBACK_VULGARIZATION =
-  "Your report findings should be interpreted by your doctor. We could not generate a simplified explanation at this time. Ask your doctor for clarification at your next appointment.";
+/**
+ * Pipeline Agentic: Extraction -> Vulgarization -> Validation -> Questions
+ * No persistence; all in memory.
+ */
 
 /**
- * Parse la sortie extraction en JSON. En cas d'échec, retourne un objet minimal.
+ * Parses the extraction output as JSON.
  */
 function parseExtraction(raw) {
   try {
-    const cleaned = raw.replace(/```json\s?/g, "").replace(/```\s?/g, "").trim();
-    return JSON.parse(cleaned);
-  } catch {
+    const clean = raw.trim().replace(/^```json/, "").replace(/```$/, "").trim();
+    return JSON.parse(clean);
+  } catch (err) {
+    console.warn("[PIPELINE] Extraction parsing failed. Returning minimal object.");
     return {
       localisation: "",
-      type_examen: "",
+      type_examen: "Medical Report",
       faits_principaux: [],
       termes_techniques: [],
-      conclusion_rapport: raw?.slice(0, 500) || "",
-      niveau_urgence: null,
+      conclusion_rapport: raw,
+      niveau_urgence: "normal",
     };
   }
 }
 
 /**
- * Parse la liste de questions (une par ligne).
+ * Parses the list of questions (one per line).
  */
 function parseQuestions(raw) {
-  if (!raw || typeof raw !== "string") return [];
   return raw
     .split("\n")
-    .map((s) => s.replace(/^[\d.)\-\*]\s*/, "").trim())
-    .filter(Boolean)
-    .slice(0, 5);
+    .map((q) => q.replace(/^\d+[\.\)]\s*/, "").trim())
+    .filter((q) => q.length > 5);
 }
 
 /**
- * Envoie un événement SSE (Server-Sent Event).
- * @param {import('express').Response} res
- * @param {string} event
- * @param {object} data
- */
-function sendSSE(res, event, data) {
-  const payload = JSON.stringify(data);
-  res.write(`event: ${event}\ndata: ${payload}\n\n`);
-}
-
-/**
- * Exécute uniquement l'extraction sur le texte du rapport.
- * @param {string} reportText - Texte du rapport
- * @returns {Promise<object>} extraction
+ * Performs extraction only on the report text.
  */
 export async function runExtractionOnly(reportText) {
-  if (!reportText || !reportText.trim()) {
-    throw new Error("The report text is empty.");
-  }
-  const text = reportText.trim().slice(0, 15000);
-  const extractionRaw = await chatCompletion(
-    [
-      { role: "system", content: EXTRACTION_SYSTEM },
-      { role: "user", content: EXTRACTION_USER(text) },
-    ],
-    { max_tokens: 1024, temperature: 0.2 }
-  );
-  return parseExtraction(extractionRaw);
+  const prompt = PROMPT_EXTRACTION.replace("{reportText}", reportText);
+  const raw = await chatCompletion([{ role: "user", content: prompt }], {
+    temperature: 0.1,
+  });
+  return parseExtraction(raw);
 }
 
 /**
- * Formate le contexte patient (objet id -> réponse) en chaîne pour les prompts.
- * @param {Record<string, string>} patientContext
- * @returns {string}
+ * Formats the patient context (id -> answer object) into a string for prompts.
  */
-function formatPatientContext(patientContext) {
-  if (!patientContext || typeof patientContext !== "object") return "";
-  return Object.entries(patientContext)
-    .filter(([, v]) => v != null && String(v).trim() !== "")
-    .map(([k, v]) => `${k}: ${String(v).trim()}`)
+function formatPatientContext(ctx) {
+  if (!ctx || Object.keys(ctx).length === 0) return "None provided.";
+  return Object.entries(ctx)
+    .map(([id, val]) => `- ${id}: ${val}`)
     .join("\n");
 }
 
 /**
- * Exécute le pipeline à partir d'une extraction déjà faite, avec contexte patient optionnel.
- * Étapes : Vulgarisation → Validation → Questions.
- * @param {object} extraction - Résultat d'extraction (runExtractionOnly)
- * @param {{ onProgress?: (step: string, data: object) => void|Promise }} options
- * @param {Record<string, string>} [options.patientContext] - Réponses aux questions de contexte (id -> réponse)
- * @returns {Promise<{ extraction: object, vulgarization: string, validationOk: boolean, questions: string[] }>}
+ * Executes the pipeline starting from an already existing extraction.
  */
 export async function runPipelineFromExtraction(extraction, options = {}) {
-  const { onProgress, patientContext = {} } = options;
-  const extractionJson = JSON.stringify(extraction, null, 2);
-  const contextStr = formatPatientContext(patientContext);
-  const hasContext = contextStr && contextStr.trim().length > 0;
+  const { patientContext, onProgress, hasImages } = options;
+  const patientContextStr = formatPatientContext(patientContext);
+  const extractionStr = JSON.stringify(extraction, null, 2);
 
-  // 2) Vulgarisation (avec contexte patient si fourni → prompt personnalisé)
-  let vulgarization;
-  try {
-    const systemContent = hasContext
-      ? `${VULGARIZATION_SYSTEM}\n\n${VULGARIZATION_SYSTEM_WITH_CONTEXT}`
-      : VULGARIZATION_SYSTEM;
-    vulgarization = await chatCompletion(
-      [
-        { role: "system", content: systemContent },
-        {
-          role: "user",
-          content: VULGARIZATION_USER_WITH_CONTEXT(extractionJson, contextStr),
-        },
-      ],
-      { max_tokens: 600, temperature: 0.3 }
-    );
-  } catch (e) {
-    vulgarization = FALLBACK_VULGARIZATION;
-  }
-  await onProgress?.("vulgarization", { extraction, vulgarization });
+  const imageInstruction = hasImages 
+    ? "Analysis of the imaging images provided by the patient (X-ray, MRI, etc.)." 
+    : "Simplification of what the doctor saw and described in the report.";
+  
+  const imageInstructionDetail = hasImages
+    ? "Refer directly to the imaging images provided by the patient (X-ray, MRI, etc.)."
+    : "Do NOT mention 'the provided image' or 'the image' if no image files were provided. Instead, describe what the report text says was seen during the exam.";
 
-  // 3) Validation (guardrail)
-  let validationOk = true;
-  try {
-    const validationRaw = await chatCompletion(
-      [
-        { role: "system", content: VALIDATION_SYSTEM },
-        { role: "user", content: VALIDATION_USER(vulgarization) },
-      ],
-      { max_tokens: 16, temperature: 0 }
-    );
-    validationOk = validationRaw.toUpperCase().trim().startsWith("OK");
-  } catch {
-    validationOk = false;
-  }
+  // 1) Vulgarization (with patient context if provided -> personalized prompt)
+  const promptV = PROMPT_VULGARIZATION
+    .replace("{extraction}", extractionStr)
+    .replace("{patientContext}", patientContextStr)
+    .replace("{imageInstruction}", imageInstruction)
+    .replace("{imageInstructionDetail}", imageInstructionDetail);
+  
+  const vulgarization = await chatCompletion([{ role: "user", content: promptV }], {
+    temperature: 0.7,
+  });
+  if (onProgress) onProgress("vulgarization", { vulgarization });
 
-  if (!validationOk) {
-    vulgarization = vulgarization + "\n\nAsk your doctor for clarification at your next appointment.";
-  }
-  await onProgress?.("validation", { extraction, vulgarization, validationOk });
+  // 2) Validation
+  const promptVal = PROMPT_VALIDATION.replace("{extraction}", extractionStr).replace(
+    "{vulgarization}",
+    vulgarization
+  );
+  const validationRaw = await chatCompletion([{ role: "user", content: promptVal }], {
+    temperature: 0.1,
+  });
+  const validationOk = validationRaw.toUpperCase().startsWith("OK");
+  if (onProgress) onProgress("validation", { validationOk });
 
-  // 4) Questions pour le médecin (avec contexte patient si fourni)
-  let questions = [];
-  try {
-    const questionsRaw = await chatCompletion(
-      [
-        { role: "system", content: QUESTIONS_SYSTEM },
-        {
-          role: "user",
-          content: QUESTIONS_USER_WITH_CONTEXT(extractionJson, vulgarization, contextStr),
-        },
-      ],
-      { max_tokens: 256, temperature: 0.4 }
-    );
-    questions = parseQuestions(questionsRaw);
-  } catch {
-    questions = ["What does this report mean for my case?", "What follow-up appointments should I expect?"];
-  }
-  await onProgress?.("questions", { extraction, vulgarization, validationOk, questions });
+  // 3) Questions for the doctor (with patient context if provided)
+  const promptQ = PROMPT_QUESTIONS.replace("{extraction}", extractionStr).replace(
+    "{patientContext}",
+    patientContextStr
+  );
+  const questionsRaw = await chatCompletion([{ role: "user", content: promptQ }], {
+    temperature: 0.7,
+  });
+  const questions = parseQuestions(questionsRaw);
+  if (onProgress) onProgress("questions", { questions });
 
   return {
     extraction,
@@ -179,32 +121,18 @@ export async function runPipelineFromExtraction(extraction, options = {}) {
 }
 
 /**
- * Exécute le pipeline complet sur le texte du rapport.
- * Si onProgress est fourni (ex. pour SSE), appelle onProgress(step, partialResult) après chaque étape.
- * @param {string} reportText - Texte du rapport (anonymisé, pas stocké)
- * @param {{ onProgress?: (step: string, data: object) => void|Promise }} options
- * @returns {Promise<{ extraction: object, vulgarization: string, validationOk: boolean, questions: string[] }>}
+ * Executes the full pipeline on the report text.
  */
 export async function runPipeline(reportText, options = {}) {
-  const { onProgress } = options;
-  if (!reportText || !reportText.trim()) {
-    throw new Error("The report text is empty.");
+  const { patientContext, onProgress } = options;
+
+  let extraction;
+  if (options.extraction) {
+    extraction = options.extraction;
+  } else {
+    extraction = await runExtractionOnly(reportText);
   }
+  if (onProgress) onProgress("extraction", { extraction });
 
-  const text = reportText.trim().slice(0, 15000); // limite raisonnable
-
-  // 1) Extraction
-  const extractionRaw = await chatCompletion(
-    [
-      { role: "system", content: EXTRACTION_SYSTEM },
-      { role: "user", content: EXTRACTION_USER(text) },
-    ],
-    { max_tokens: 1024, temperature: 0.2 }
-  );
-  const extraction = parseExtraction(extractionRaw);
-  await onProgress?.("extraction", { extraction });
-
-  return runPipelineFromExtraction(extraction, { onProgress });
+  return runPipelineFromExtraction(extraction, options);
 }
-
-export { sendSSE };

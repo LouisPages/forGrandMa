@@ -14,7 +14,7 @@ import type {
 
 const API_BASE = import.meta.env.VITE_API_URL || "";
 
-/** Clé connues d'ExtractedFacts pour éviter toute référence circulaire à la sérialisation. */
+/** Known keys of ExtractedFacts to avoid circular references during serialization. */
 const EXTRACTION_KEYS: (keyof ExtractedFacts)[] = [
   "localisation",
   "type_examen",
@@ -24,7 +24,7 @@ const EXTRACTION_KEYS: (keyof ExtractedFacts)[] = [
   "niveau_urgence",
 ];
 
-/** Retourne une copie sérialisable de l'extraction (évite "cyclic object value"). */
+/** Returns a serializable copy of the extraction (avoids "cyclic object value"). */
 function getSafeExtraction(extraction: unknown): ExtractedFacts {
   if (!extraction || typeof extraction !== "object") {
     return {};
@@ -41,7 +41,7 @@ function getSafeExtraction(extraction: unknown): ExtractedFacts {
   return out as ExtractedFacts;
 }
 
-/** Contexte patient en objet plat (évite références circulaires). */
+/** Patient context as a flat object (avoids circular references). */
 function getSafePatientContext(ctx: PatientContext | undefined): PatientContext {
   if (!ctx || typeof ctx !== "object") return {};
   return Object.fromEntries(
@@ -52,7 +52,7 @@ function getSafePatientContext(ctx: PatientContext | undefined): PatientContext 
   );
 }
 
-/** Parse le flux SSE (lignes event: / data:) et appelle onEvent pour chaque message. */
+/** Parses the SSE stream (event: / data: lines) and calls onEvent for each message. */
 async function consumeSSE(
   reader: ReadableStreamDefaultReader<Uint8Array>,
   onEvent: (event: string, data: object) => void
@@ -89,12 +89,12 @@ const Index = () => {
   const [error, setError] = useState<string | null>(null);
   const [contextQuestions, setContextQuestions] = useState<ContextQuestion[] | null>(null);
   const [patientContext, setPatientContext] = useState<PatientContext>({});
-  /** Images d'imagerie (radio/IRM) ajoutées en plus du rapport — pour les légendes */
+  /** Imaging images (X-ray/MRI) added in addition to the report — for legends */
   const [legendImageDataUrls, setLegendImageDataUrls] = useState<string[]>([]);
-  /** Image du rapport quand le document est une photo (pas un PDF) — utilisée pour les légendes */
+  /** Image of the report when the document is a photo (not a PDF) — used for legends */
   const [reportImageDataUrl, setReportImageDataUrl] = useState<string | null>(null);
 
-  /** Phase 1 : extraction seule pour obtenir le type d'examen et les questions de contexte */
+  /** Phase 1: extraction only to get the type of exam and context questions */
   const handleUnderstandReport = useCallback(async (reportText: string) => {
     setError(null);
     setLoading(true);
@@ -121,7 +121,7 @@ const Index = () => {
     }
   }, []);
 
-  /** Phase 2 : lancer vulgarisation + questions avec le contexte patient. Si contextOverride est fourni (ex. après modification des réglages), on l'utilise pour la requête. */
+  /** Phase 2: launch simplification + questions with patient context. If contextOverride is provided (e.g. after editing settings), it's used for the request. */
   const handleLaunchAnalysisWithContext = useCallback(
     async (contextOverride?: PatientContext) => {
       if (!pipelineResult?.extraction) return;
@@ -139,6 +139,7 @@ const Index = () => {
           body: JSON.stringify({
             extraction: extractionPlain,
             patientContext: getSafePatientContext(contextToUse),
+            hasImages: legendImageDataUrls.length > 0,
           }),
           signal: controller.signal,
         });
@@ -148,8 +149,8 @@ const Index = () => {
           throw new Error(data.error || `Error ${res.status}`);
         }
         const reader = res.body?.getReader();
-        if (!reader) throw new Error("Stream non disponible");
-        /** Seules les images d'imagerie optionnelles (radio, IRM…) sont légendées ; pas la photo du rapport. */
+        if (!reader) throw new Error("Stream not available");
+        /** Only optional imaging images (X-ray, MRI…) are labeled; not the report photo. */
         const allImagesForLegends = legendImageDataUrls ?? [];
         const hasImagesForStream = allImagesForLegends.length > 0;
         await consumeSSE(reader, (event, data) => {
@@ -176,7 +177,7 @@ const Index = () => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ image: url, extraction: extractionPlain }),
                   })
-                    .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Legendes failed"))))
+                    .then((r) => (r.ok ? r.json() : Promise.reject(new Error("Legends failed"))))
                     .then((data: { legendes: LegendItem["legendes"] }) => ({ url, legendes: data.legendes }))
                     .catch(() => ({ url, legendes: [] }))
                 )
@@ -219,7 +220,7 @@ const Index = () => {
       if (e instanceof Error && e.name === "AbortError") {
         setError("Analysis took too long. Please try again.");
       } else {
-        setError(e instanceof Error ? e.message : "Erreur lors du traitement.");
+        setError(e instanceof Error ? e.message : "Error during processing.");
       }
     } finally {
       clearTimeout(timeoutId);

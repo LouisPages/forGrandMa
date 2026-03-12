@@ -1,194 +1,153 @@
+import { chatCompletion } from "./llm.js";
+import { PROMPT_LEGENDES } from "./prompts.js";
+
 /**
- * Génération des légendes (flèches + labels) sur une image d'imagerie via LLM vision.
+ * Generation of legends (arrows + labels) on an imaging image via LLM vision.
+ * No persistence; all in memory.
  */
 
-import { chatCompletion } from "./llm.js";
-import { LEGENDES_SYSTEM, LEGENDES_USER } from "./prompts.js";
-
 /**
- * Parse la réponse JSON du LLM et valide le format des légendes.
- * @param {string} raw - Réponse brute du LLM
- * @returns {{ label: string, fleche: { x1, y1, x2, y2 } }[]}
+ * Parses the LLM JSON response and validates the legend format.
  */
 function parseLegendesResponse(raw) {
-  if (!raw || typeof raw !== "string") return [];
   try {
-    const cleaned = raw
-      .replace(/```json\s?/g, "")
-      .replace(/```\s?/g, "")
-      .trim();
-    const obj = JSON.parse(cleaned);
+    const clean = raw.trim().replace(/^```json/, "").replace(/```$/, "").trim();
+    const obj = JSON.parse(clean);
     const list = Array.isArray(obj.legendes) ? obj.legendes : [];
-    return list
-      .filter(
-        (item) =>
-          item &&
-          typeof item.label === "string" &&
-          item.fleche &&
-          typeof item.fleche.x1 === "number" &&
-          typeof item.fleche.y1 === "number" &&
-          typeof item.fleche.x2 === "number" &&
-          typeof item.fleche.y2 === "number"
-      )
-      .map((item) => ({
-        label: String(item.label).trim() || "Zone",
-        fleche: {
-          x1: clamp(item.fleche.x1, 0, 1),
-          y1: clamp(item.fleche.y1, 0, 1),
-          x2: clamp(item.fleche.x2, 0, 1),
-          y2: clamp(item.fleche.y2, 0, 1),
-        },
-      }));
-  } catch {
+    return list.map((leg) => ({
+      label: String(leg.label || "Area"),
+      fleche: {
+        x1: 0,
+        y1: 0,
+        x2: Number(leg.fleche?.x2 ?? 0.5),
+        y2: Number(leg.fleche?.y2 ?? 0.5),
+      },
+    }));
+  } catch (err) {
+    console.warn("[LEGENDES] Parsing failed.");
     return [];
   }
 }
 
-function clamp(v, min, max) {
-  const n = Number(v);
-  if (Number.isNaN(n)) return min;
-  return Math.max(min, Math.min(max, n));
-}
-
-/** Orientation signée: > 0 si c à gauche de (a->b), < 0 si à droite, 0 si alignés */
-function orientation(ax, ay, bx, by, cx, cy) {
+/** Signed orientation: > 0 if c is to the left of (a->b), < 0 if to the right, 0 if aligned */
+function getOrientation(ax, ay, bx, by, cx, cy) {
   return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax);
 }
 
-/** Vrai si le point (px,py) est sur le segment (ax,ay)-(bx,by) (entre les deux extrémités). */
-function pointOnSegment(ax, ay, bx, by, px, py) {
-  const cross = orientation(ax, ay, bx, by, px, py);
-  if (Math.abs(cross) > 1e-9) return false;
-  const minX = Math.min(ax, bx), maxX = Math.max(ax, bx);
-  const minY = Math.min(ay, by), maxY = Math.max(ay, by);
-  return px >= minX - 1e-9 && px <= maxX + 1e-9 && py >= minY - 1e-9 && py <= maxY + 1e-9;
+/** True if point (px,py) is on segment (ax,ay)-(bx,by) (between the two ends). */
+function onSegment(ax, ay, bx, by, px, py) {
+  return (
+    px >= Math.min(ax, bx) &&
+    px <= Math.max(ax, bx) &&
+    py >= Math.min(ay, by) &&
+    py <= Math.max(ay, by)
+  );
 }
 
-/** Vrai si les segments (a1,a2) et (b1,b2) se croisent (intersection stricte ou point sur segment). */
-function segmentsIntersect(a1, a2, b1, b2) {
-  const [ax1, ay1] = a1, [ax2, ay2] = a2, [bx1, by1] = b1, [bx2, by2] = b2;
-  const o1 = orientation(ax1, ay1, ax2, ay2, bx1, by1);
-  const o2 = orientation(ax1, ay1, ax2, ay2, bx2, by2);
-  const o3 = orientation(bx1, by1, bx2, by2, ax1, ay1);
-  const o4 = orientation(bx1, by1, bx2, by2, ax2, ay2);
-  if (o1 * o2 < 0 && o3 * o4 < 0) return true;
-  if (pointOnSegment(ax1, ay1, ax2, ay2, bx1, by1) || pointOnSegment(ax1, ay1, ax2, ay2, bx2, by2)) return true;
-  if (pointOnSegment(bx1, by1, bx2, by2, ax1, ay1) || pointOnSegment(bx1, by1, bx2, by2, ax2, ay2)) return true;
+/** True if segments (a1,a2) and (b1,b2) cross (strict intersection or point on segment). */
+function doIntersect(ax1, ay1, ax2, ay2, bx1, by1, bx2, by2) {
+  const o1 = getOrientation(ax1, ay1, ax2, ay2, bx1, by1);
+  const o2 = getOrientation(ax1, ay1, ax2, ay2, bx2, by2);
+  const o3 = getOrientation(bx1, by1, bx2, by2, ax1, ay1);
+  const o4 = getOrientation(bx1, by1, bx2, by2, ax2, ay2);
+
+  if (((o1 > 0 && o2 < 0) || (o1 < 0 && o2 > 0)) && ((o3 > 0 && o4 < 0) || (o3 < 0 && o4 > 0))) {
+    return true;
+  }
+  if (o1 === 0 && onSegment(ax1, ay1, ax2, ay2, bx1, by1)) return true;
+  if (o2 === 0 && onSegment(ax1, ay1, ax2, ay2, bx2, by2)) return true;
+  if (o3 === 0 && onSegment(bx1, by1, bx2, by2, ax1, ay1)) return true;
+  if (o4 === 0 && onSegment(bx1, by1, bx2, by2, ax2, ay2)) return true;
+
   return false;
 }
 
 /**
- * Retourne un point (x, y) sur le contour de l'image en coordonnées normalisées 0–1.
- * Sens horaire à partir du coin supérieur gauche : haut → droite → bas → gauche.
- * @param {number} t - Paramètre dans [0, 1[ (0 = haut-gauche, 0.25 = haut-droite, 0.5 = bas-droite, 0.75 = bas-gauche)
- * @returns {[number, number]} [x, y]
+ * Returns a point (x, y) on the image contour in normalized coordinates 0–1.
+ * Clockwise from top-left corner: top → right → bottom → left.
  */
-function getClockwiseBoundaryPoint(t) {
-  const p = (t % 1) * 4; // périmètre normalisé [0, 4[
-  if (p < 1) return [p, 0];           // bord haut (gauche → droite)
-  if (p < 2) return [1, p - 1];       // bord droit (haut → bas)
-  if (p < 3) return [3 - p, 1];      // bord bas (droite → gauche)
-  return [0, 4 - p];                  // bord gauche (bas → haut)
+function getPointOnBorder(t) {
+  if (t < 0.25) return { x: t * 4, y: 0 }; // Top
+  if (t < 0.5) return { x: 1, y: (t - 0.25) * 4 }; // Right
+  if (t < 0.75) return { x: 1 - (t - 0.5) * 4, y: 1 }; // Bottom
+  return { x: 0, y: 1 - (t - 0.75) * 4 }; // Left
 }
 
 /**
- * Répartit les points de départ (x1, y1) régulièrement en sens horaire autour de l'image.
- * Garde (x2, y2) inchangés (pointe vers la zone). Évite les croisements en plaçant les départs de façon déterministe.
- * @param {{ label: string, fleche: { x1, y1, x2, y2 } }[]} legendes
- * @returns {typeof legendes}
+ * Distributes starting points (x1, y1) regularly clockwise around the image.
+ * Keeps (x2, y2) unchanged. Avoids crossings by placing starts deterministically.
  */
-function assignStartsClockwise(legendes) {
-  const n = legendes.length;
-  if (n === 0) return legendes;
-  legendes.forEach((leg, i) => {
-    const [x1, y1] = getClockwiseBoundaryPoint(i / n);
-    leg.fleche.x1 = x1;
-    leg.fleche.y1 = y1;
+function assignStartsClockwise(list) {
+  if (!list.length) return [];
+  // Candidate starting points on the image border (0–1), deterministic to avoid crossings
+  const borderPoints = [];
+  for (let t = 0; t <= 1; t += 0.05) {
+    borderPoints.push(getPointOnBorder(t));
+  }
+
+  /** Checks if segment (x1,y1)->(x2,y2) crosses any other legend segments. */
+  function anyCross(x1, y1, x2, y2, excludeIndex) {
+    for (let i = 0; i < list.length; i++) {
+      if (i === excludeIndex) continue;
+      const other = list[i];
+      if (doIntersect(x1, y1, x2, y2, other.fleche.x1, other.fleche.y1, other.fleche.x2, other.fleche.y2)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Initial assignment (first points)
+  list.forEach((leg, i) => {
+    const p = borderPoints[Math.floor((i / list.length) * borderPoints.length)];
+    leg.fleche.x1 = p.x;
+    leg.fleche.y1 = p.y;
   });
-  return legendes;
-}
 
-/** Points de départ candidats sur le bord de l'image (coordonnées 0–1), déterministes pour éviter les croisements */
-function getBoundaryStarts() {
-  const pts = [];
-  for (let t = 0; t <= 1; t += 0.1) {
-    pts.push([0, t], [1, t], [t, 0], [t, 1]);
-  }
-  return pts;
-}
-
-/** Vérifie si le segment (x1,y1)->(x2,y2) croise l'un des segments des autres légendes (indices dans list, excluant excludeIndex). */
-function arrowCrossesOthers(x1, y1, x2, y2, list, excludeIndex) {
-  for (let i = 0; i < list.length; i++) {
-    if (i === excludeIndex) continue;
-    const f = list[i].fleche;
-    if (segmentsIntersect([x1, y1], [x2, y2], [f.x1, f.y1], [f.x2, f.y2])) return true;
-  }
-  return false;
-}
-
-/**
- * Ajuste les (x1,y1) des légendes pour qu'aucune flèche n'en croise une autre.
- * Déterministe : on essaie des points de départ sur le bord de l'image jusqu'à plus de croisement.
- * @param {{ label: string, fleche: { x1, y1, x2, y2 } }[]} legendes
- * @returns {typeof legendes}
- */
-function resolveArrowCrossings(legendes) {
-  if (legendes.length <= 1) return legendes;
-  const list = legendes.map((leg) => ({ ...leg, fleche: { ...leg.fleche } }));
-  const boundary = getBoundaryStarts();
-  const maxPasses = 10;
-
+  // Iterative optimization to avoid crossings
+  const maxPasses = 5;
   for (let pass = 0; pass < maxPasses; pass++) {
     let changed = false;
     for (let i = 0; i < list.length; i++) {
       const leg = list[i];
-      const { x1, y1, x2, y2 } = leg.fleche;
-      if (!arrowCrossesOthers(x1, y1, x2, y2, list, i)) continue;
-
-      for (const [sx, sy] of boundary) {
-        if (arrowCrossesOthers(sx, sy, x2, y2, list, i)) continue;
-        leg.fleche.x1 = sx;
-        leg.fleche.y1 = sy;
-        changed = true;
-        break;
+      if (anyCross(leg.fleche.x1, leg.fleche.y1, leg.fleche.x2, leg.fleche.y2, i)) {
+        // Try other border points
+        for (const p of borderPoints) {
+          if (!anyCross(p.x, p.y, leg.fleche.x2, leg.fleche.y2, i)) {
+            leg.fleche.x1 = p.x;
+            leg.fleche.y1 = p.y;
+            changed = true;
+            break;
+          }
+        }
       }
     }
     if (!changed) break;
   }
+
   return list;
 }
 
 /**
- * Génère les légendes (flèches + labels) pour une image d'imagerie.
- * @param {string} imageDataUrl - Data URL base64 de l'image (data:image/...;base64,...)
- * @param {object} extraction - Résultat de l'extraction du rapport
- * @returns {Promise<{ label: string, fleche: { x1, y1, x2, y2 } }[]>}
+ * Generates legends (arrows + labels) for an imaging image.
  */
 export async function runLegendes(imageDataUrl, extraction) {
-  const extractionStr =
-    typeof extraction === "string" ? extraction : JSON.stringify(extraction, null, 2);
-  const textContent = LEGENDES_USER(extractionStr);
-
   const messages = [
-    { role: "system", content: LEGENDES_SYSTEM },
     {
       role: "user",
       content: [
-        // detail: "high" améliore la précision des coordonnées pour les APIs qui le supportent (ex. OpenAI)
-        { type: "image_url", image_url: { url: imageDataUrl, detail: "high" } },
-        { type: "text", text: textContent },
+        { type: "text", text: PROMPT_LEGENDES.replace("{extraction}", JSON.stringify(extraction)) },
+        { type: "image_url", image_url: { url: imageDataUrl } },
       ],
     },
   ];
 
   const raw = await chatCompletion(messages, {
+    temperature: 0.1,
     max_tokens: 1024,
-    temperature: 0.2,
-    timeoutMs: 60_000,
   });
 
   let legendes = parseLegendesResponse(raw);
   legendes = assignStartsClockwise(legendes);
-  return resolveArrowCrossings(legendes);
+  return legendes;
 }

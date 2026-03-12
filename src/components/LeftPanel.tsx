@@ -4,13 +4,13 @@ import ImageWithLegends from "@/components/ImageWithLegends";
 import type { LegendItem } from "@/types/report";
 
 interface LeftPanelProps {
-  /** Contenu principal : zone PDF / rapport */
+  /** Main content: PDF / report zone */
   children: React.ReactNode;
-  /** Images légendées par l’IA (si présentes, on affiche l’onglet Images + carousel) */
+  /** AI-labeled images (if present, shows Images tab + carousel) */
   legendItems?: LegendItem[] | null;
 }
 
-/** Panneau gauche : rapport (PDF) ou carousel d’images légendées avec navigation. */
+/** Left panel: report (PDF) or carousel of labeled images with navigation. */
 const LeftPanel = ({ children, legendItems }: LeftPanelProps) => {
   const [view, setView] = useState<"report" | "legends">("report");
   const [legendIndex, setLegendIndex] = useState(0);
@@ -32,7 +32,7 @@ const LeftPanel = ({ children, legendItems }: LeftPanelProps) => {
             }`}
           >
             <FileText className="w-4 h-4" />
-            Rapport
+            Report
           </button>
           <button
             type="button"
@@ -50,11 +50,11 @@ const LeftPanel = ({ children, legendItems }: LeftPanelProps) => {
       )}
 
       <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
-        {/* Rapport : toujours monté pour garder le fichier/PDF affiché au retour sur l'onglet */}
+        {/* Report: always mounted to keep file/PDF displayed when returning to the tab */}
         <div className={`flex-1 min-h-0 flex flex-col ${!hasLegends || view === "report" ? "" : "hidden"}`}>
           {children}
         </div>
-        {/* Images légendées : affiché uniquement quand l'onglet Images est actif */}
+        {/* Labeled images: displayed only when Images tab is active */}
         {hasLegends && (
           <div className={`flex-1 min-h-0 flex flex-col ${view === "legends" ? "" : "hidden"}`}>
             <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-4 bg-gm-gradient-soft">
@@ -63,13 +63,13 @@ const LeftPanel = ({ children, legendItems }: LeftPanelProps) => {
                   <ImageWithLegends
                     imageUrl={currentLegend.imageUrl}
                     legendes={currentLegend.legendes}
-                    alt={`Image d'imagerie ${legendItems.length > 1 ? legendIndex + 1 : ""}`.trim()}
+                    alt={`Imaging image ${legendItems.length > 1 ? legendIndex + 1 : ""}`.trim()}
                     className="w-full h-full max-w-4xl min-h-[min(70vh,800px)]"
                   />
                 ) : (
                   <img
                     src={currentLegend.imageUrl}
-                    alt="Image d'imagerie"
+                    alt="Imaging image"
                     className="max-w-full max-h-[min(70vh,800px)] w-full max-w-4xl object-contain rounded-lg"
                   />
                 )

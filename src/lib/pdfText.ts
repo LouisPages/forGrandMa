@@ -1,27 +1,25 @@
+import * as pdfjsLib from "pdfjs-dist";
+
 /**
- * Extrait le texte d’un PDF côté client (pour envoyer au pipeline).
+ * Extracts text from a PDF on the client side.
  */
 
-import * as pdfjsLib from "pdfjs-dist";
-import pdfjsWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
-
-// Obligatoire pour pdfjs-dist : indiquer où charger le worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = pdfjsWorker;
+// Required for pdfjs-dist: specify where to load the worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
 
 export async function extractTextFromPdf(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
-  const doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const numPages = doc.numPages;
-  const parts: string[] = [];
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let fullText = "";
 
-  for (let i = 1; i <= numPages; i++) {
-    const page = await doc.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item) => ("str" in item ? item.str : ""))
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const textContent = await page.getTextContent();
+    const pageText = textContent.items
+      .map((item: any) => item.str)
       .join(" ");
-    parts.push(pageText);
+    fullText += pageText + "\n";
   }
 
-  return parts.join("\n\n").trim();
+  return fullText;
 }

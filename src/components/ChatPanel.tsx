@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Send, Heart, User, Settings, Sparkles, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import ReportExplanationPanel from "@/components/ReportExplanationPanel";
 import type {
   ReportPipelineResultPartial,
@@ -21,7 +23,7 @@ interface ChatPanelProps {
   contextQuestions?: ContextQuestion[] | null;
   patientContext?: PatientContext;
   onPatientContextChange?: (id: string, value: string) => void;
-  /** Lance l'analyse (vulgarisation + questions). Si contextOverride est fourni, utilise ce contexte (ex. après enregistrement des réglages). */
+  /** Launches analysis (simplification + questions). If contextOverride is provided, use that context (e.g. after saving settings). */
   onLaunchAnalysisWithContext?: (contextOverride?: PatientContext) => void;
   setPatientContextBulk?: (ctx: PatientContext) => void;
   clearPatientContext?: () => void;
@@ -44,7 +46,7 @@ const ChatPanel = ({
     pipelineResult.questions != null;
   const canAsk = isReportComplete;
 
-  /** En attente des réponses au contexte : on a l'extraction, les questions de contexte, pas encore la vulgarisation. On ne les affiche pas quand l'explication est en cours d'adaptation (legendItems = on a déjà lancé l'analyse avec images). */
+  /** Waiting for context responses: extraction available, context questions available, but simplification not yet. Not displayed when explanation is being adapted to legends. */
   const awaitingContext =
     !!pipelineResult?.extraction &&
     Array.isArray(contextQuestions) &&
@@ -111,14 +113,14 @@ const ChatPanel = ({
             },
             2
           );
-          contextStr = `Extraction : ${extractionStr}\n\nVulgarisation : ${pipelineResult.vulgarization ?? ""}`;
+          contextStr = `Extraction: ${extractionStr}\n\nSimplification: ${pipelineResult.vulgarization ?? ""}`;
         } catch {
-          contextStr = `Vulgarisation : ${pipelineResult.vulgarization ?? ""}`;
+          contextStr = `Simplification: ${pipelineResult.vulgarization ?? ""}`;
         }
       }
       if (pipelineResult?.legendItems && pipelineResult.legendItems.length > 0) {
         const allLabels = pipelineResult.legendItems.flatMap((it) => it.legendes?.map((l) => l.label).filter(Boolean) ?? []);
-        contextStr += `\n\nLegend images: imaging (X-ray/MRI) images accompany this report and relate to the simplified explanation. Labels: ${allLabels.length > 0 ? allLabels.map((l, i) => `${i + 1}) « ${l} »`).join(" ; ") : "in progress"}. When relevant, refer to these images and labels (e.g. \"as shown on the image, the area « … » corresponds to…\").`;
+        contextStr += `\n\nImaging images (X-ray/MRI) accompany this report. Labels: ${allLabels.length > 0 ? allLabels.map((l, i) => `${i + 1}) "${l}"`).join("; ") : "in progress"}. When relevant, refer to these images and labels (e.g. "as shown on the image, the area \"…\" corresponds to…").`;
       }
       if (Object.keys(patientContext).length > 0) {
         contextStr += `\n\nPatient context (answers to context questions):\n${Object.entries(patientContext)
@@ -152,7 +154,7 @@ const ChatPanel = ({
         {
           id: `a-${Date.now()}`,
           role: "assistant",
-          text: e instanceof Error ? e.message : "Une erreur s'est produite. Réessayez.",
+          text: e instanceof Error ? e.message : "An error occurred. Please try again.",
         },
       ]);
     } finally {
@@ -185,10 +187,10 @@ const ChatPanel = ({
             </h2>
             <p className="text-xs text-primary-foreground/70 mt-1">
               {canAsk
-                ? "Posez vos questions, je vous explique simplement."
+                ? "Ask your questions, I'll explain simply."
                 : awaitingContext
-                  ? "Quelques questions pour personnaliser l'explication."
-                  : "L'analyse du rapport s'affiche ici."}
+                  ? "A few questions to personalize the explanation."
+                  : "The report analysis will appear here."}
             </p>
           </div>
           <button
@@ -203,7 +205,7 @@ const ChatPanel = ({
         </div>
       </div>
 
-      {/* Modal réglages : contexte patient */}
+      {/* Settings Modal: patient context */}
       {settingsOpen && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
@@ -214,7 +216,7 @@ const ChatPanel = ({
           <div className="bg-card border border-border rounded-2xl shadow-xl max-w-md w-full max-h-[85vh] overflow-hidden flex flex-col">
             <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <h3 id="settings-title" className="text-sm font-semibold text-foreground">
-                Contexte patient
+                Patient Context
               </h3>
               <button
                 type="button"
@@ -262,7 +264,7 @@ const ChatPanel = ({
                 }}
                 className="px-3 py-2 text-xs font-medium rounded-lg border border-border text-muted-foreground hover:bg-secondary transition-colors"
               >
-                Effacer tout
+                Clear all
               </button>
               <button
                 type="button"
@@ -278,7 +280,7 @@ const ChatPanel = ({
 
       <div className="flex-1 overflow-y-auto min-h-0 flex flex-col bg-gm-gradient-soft">
         <div className="flex flex-col">
-          {/* Bloc rapport formaté (mise en forme d'avant, pas des bulles) */}
+          {/* Report block */}
           {showReportBlock && (
             <div className="flex-shrink-0 border-b border-border/40 bg-background/50">
               <ReportExplanationPanel
@@ -290,7 +292,7 @@ const ChatPanel = ({
             </div>
           )}
 
-          {/* Partie conversation : messages en bulles */}
+          {/* Conversation part */}
           <div className="px-5 py-4 space-y-4 flex-1">
             {showWelcomeOnly && (
               <div className="flex gap-3 animate-float-up">
@@ -299,7 +301,7 @@ const ChatPanel = ({
                 </div>
                 <div className="max-w-[85%] px-4 py-3 text-sm leading-relaxed rounded-2xl rounded-tl-md bg-card border border-border/60 text-foreground shadow-gm-soft">
                   <p className="whitespace-pre-wrap break-words">
-                    Hello! 👋 Upload your PDF report on the left then click « Understand my report ». The analysis will appear above, then you can ask your questions here.
+                    Hello! 👋 Upload your report (PDF or photo) on the left, then click "Understand my report". The analysis will appear above, then you can ask your questions here.
                   </p>
                 </div>
               </div>
@@ -311,12 +313,12 @@ const ChatPanel = ({
                   <Heart className="w-3.5 h-3.5" />
                 </div>
                 <div className="max-w-[85%] px-4 py-3 text-sm rounded-2xl rounded-tl-md bg-card border border-border/60 text-muted-foreground shadow-gm-soft">
-                  J'analyse votre rapport, un instant…
+                  Analyzing your report, one moment…
                 </div>
               </div>
             )}
 
-            {/* Phase contexte : questions adaptées au type d'examen */}
+            {/* Context phase */}
             {awaitingContext && (
               <div className="space-y-4">
                 <div className="flex gap-3 animate-float-up">
@@ -327,7 +329,7 @@ const ChatPanel = ({
                     {(contextQuestions ?? []).length > 0 ? (
                       <>
                         <p className="mb-2">
-                          Pour mieux adapter l'explication à votre situation, pouvez-vous répondre à ces quelques questions (optionnel) ?
+                          To better tailor the explanation to your situation, could you answer these few questions (optional)?
                         </p>
                         <div className="space-y-3 mt-3">
                           {(contextQuestions ?? []).map((q) => (
@@ -372,7 +374,7 @@ const ChatPanel = ({
                   <Heart className="w-3.5 h-3.5" />
                 </div>
                 <div className="max-w-[85%] px-4 py-3 text-sm leading-relaxed rounded-2xl rounded-tl-md bg-card border border-border/60 text-foreground shadow-gm-soft">
-                  Vous pouvez maintenant poser vos questions ci-dessous.
+                  You can now ask your questions below.
                 </div>
               </div>
             )}
@@ -399,11 +401,17 @@ const ChatPanel = ({
                   <div
                     className={`max-w-[85%] px-4 py-3 text-sm leading-relaxed ${
                       msg.role === "assistant"
-                        ? "rounded-2xl rounded-tl-md bg-card border border-border/60 text-foreground shadow-gm-soft"
+                        ? "rounded-2xl rounded-tl-md bg-card border border-border/60 text-foreground shadow-gm-soft prose prose-sm prose-slate dark:prose-invert"
                         : "rounded-2xl rounded-tr-md bg-gm-gradient text-primary-foreground shadow-gm"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                    {msg.role === "assistant" ? (
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                        {msg.text}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -414,7 +422,7 @@ const ChatPanel = ({
                   <Heart className="w-3.5 h-3.5" />
                 </div>
                 <div className="rounded-2xl rounded-tl-md bg-card border border-border/60 px-4 py-3 text-sm text-muted-foreground">
-                  Réflexion…
+                  Thinking…
                 </div>
               </div>
             )}

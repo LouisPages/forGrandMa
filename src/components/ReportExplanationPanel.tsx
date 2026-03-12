@@ -6,18 +6,20 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Loader2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { ReportPipelineResultPartial } from "@/types/report";
 
 interface ReportExplanationPanelProps {
   result: ReportPipelineResultPartial;
   isComplete?: boolean;
-  /** Intégré dans le chat : pas de scroll propre, padding réduit */
+  /** Embedded in chat: no own scroll, reduced padding */
   embedded?: boolean;
-  /** true dès que le contexte patient a été envoyé et qu'on attend la vulgarisation (affichage immédiat du bloc "Explication simple" en chargement) */
+  /** true as soon as patient context has been sent and we're waiting for simplification (immediate display of "Simple explanation" block in loading) */
   explanationLoading?: boolean;
 }
 
-/** Affiche les blocs du pipeline : vulgarisation, validation, questions pour le médecin (en direct si stream) */
+/** Displays pipeline blocks: simplification, validation, questions for the doctor (live if stream) */
 const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, explanationLoading = false }: ReportExplanationPanelProps) => {
   const { extraction, vulgarization, validationOk, questions, legendItems } = result;
   const hasVulgarization = vulgarization != null && vulgarization !== "";
@@ -32,7 +34,7 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
     "What you can do",
   ];
 
-  /** Enlève en début de bloc un éventuel doublon du titre (ex. "Ce que le médecin en conclut :") pour éviter la répétition avec le libellé affiché au-dessus. */
+  /** Removes any duplicate title at the beginning of a block (e.g. "What the doctor concludes:") to avoid repetition with the label displayed above. */
   const stripLabelFromBlock = (text: string, label: string) => {
     let t = text.trim();
     if (!label) return t;
@@ -40,7 +42,7 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
     for (const p of prefixes) {
       if (t.startsWith(p)) return t.slice(p.length).trim();
     }
-    // Première ligne = libellé seul (avec ou sans deux-points)
+    // First line = label only (with or without colon)
     const firstLine = t.split("\n")[0].trim();
     if (firstLine === label || firstLine === label + " :" || firstLine === label + ":") {
       return t.slice(firstLine.length).trimStart();
@@ -52,7 +54,7 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
     <div
       className={`flex flex-col gap-4 ${embedded ? "p-4 pt-2 pb-2 overflow-visible" : "p-4 pb-0 overflow-y-auto"}`}
     >
-      {/* Ligne du temps parcours */}
+      {/* Journey timeline */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground flex-wrap">
         <span className="font-medium text-foreground">Report received</span>
         <ChevronRight className="w-3.5 h-3.5" />
@@ -61,7 +63,7 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
         <span>Next appointment</span>
       </div>
 
-      {/* 1) Vulgarisation (3 blocs) — affichée dès envoi du contexte (loading), puis après adaptation aux légendes ou après analyse */}
+      {/* 1) Simplification (3 blocks) — displayed upon context submission (loading), then after legend adaptation or analysis */}
       {showExplanationBlock && (
       <div className="rounded-xl border border-border/60 bg-card shadow-gm-soft overflow-hidden">
         <div className="px-4 py-3 border-b border-border/40 flex items-center justify-between">
@@ -101,21 +103,25 @@ const ReportExplanationPanel = ({ result, isComplete = true, embedded = false, e
                 <p className="text-xs font-semibold text-muted-foreground mb-1">
                   {blockLabels[i] || `Block ${i + 1}`}
                 </p>
-                <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-                  {stripLabelFromBlock(block, blockLabels[i] ?? "")}
-                </p>
+                <div className="text-sm leading-relaxed text-foreground prose prose-sm prose-slate dark:prose-invert max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {stripLabelFromBlock(block, blockLabels[i] ?? "")}
+                  </ReactMarkdown>
+                </div>
               </div>
             ))
           ) : (
-            <p className="text-sm leading-relaxed text-foreground whitespace-pre-wrap">
-              {vulgarization}
-            </p>
+            <div className="text-sm leading-relaxed text-foreground prose prose-sm prose-slate dark:prose-invert max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {vulgarization || ""}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
       </div>
       )}
 
-      {/* 3) Questions pour le médecin — affichées après analyse (ou "en cours" pendant le stream) */}
+      {/* 3) Questions for the doctor — displayed after analysis (or "in progress" during stream) */}
       {(hasQuestions || (hasVulgarization && !isComplete)) && (
         <div className="rounded-xl border border-primary/20 bg-secondary/30 shadow-gm-soft overflow-hidden">
           <div className="px-4 py-3 border-b border-border/40 flex items-center gap-2">

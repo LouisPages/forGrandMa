@@ -1,26 +1,20 @@
 /**
- * Appel à une API LLM : Google Gemini (Gemma 3 27B) ou API compatible OpenAI (chat completions).
- * - Si GOOGLE_API_KEY est défini : utilise l'API Gemini avec gemma-3-27b-it.
- * - Sinon : OPENAI_API_KEY + OPENAI_API_URL (ex. OpenAI, Ollama).
+ * LLM API Call: Google Gemini (Gemma 3 27B).
  */
-
-const GEMINI_BASE = "https://generativelanguage.googleapis.com/v1beta";
-const GEMINI_MODEL = "gemma-3-27b-it";
-
-const getConfig = () => {
+export async function chatCompletion(messages, options = {}) {
   const googleKey = process.env.GOOGLE_API_KEY;
-  const apiKey = process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_OPENAI;
-  const baseUrl = process.env.OPENAI_API_URL || "https://api.openai.com/v1";
-  const isLocal = /^https?:\/\/localhost(\d*)/.test(baseUrl) || /^https?:\/\/127\.0\.0\.1/.test(baseUrl);
-  const useGoogle = !!googleKey;
-  return { googleKey, apiKey, baseUrl, isLocal, useGoogle };
-};
+
+  if (!googleKey) {
+    throw new Error("Missing GOOGLE_API_KEY. Please set it in your .env file.");
+  }
+
+  return chatGoogleGemini(messages, options, googleKey);
+}
 
 /**
- * Convertit les messages OpenAI (system, user, assistant) en format Gemini (contents uniquement).
- * Supporte désormais les images (base64).
+ * Converts OpenAI-style messages (system, user, assistant) to Gemini format.
  */
-function toGeminiPayload(messages, generationConfig) {
+function toGeminiFormat(messages) {
   let systemText = "";
   const contents = [];
 
@@ -30,197 +24,104 @@ function toGeminiPayload(messages, generationConfig) {
       continue;
     }
     const role = msg.role === "assistant" ? "model" : "user";
-    
     const parts = [];
-    
-    // Si le contenu est une chaîne, c'est du texte simple
+
     if (typeof msg.content === "string") {
       let text = msg.content;
       if (role === "user" && systemText) {
-        text = systemText + "\n\n" + text;
+        text = `Instructions: ${systemText}\n\nUser Message: ${text}`;
         systemText = "";
       }
       parts.push({ text });
-    } 
-    // Si c'est un tableau, il peut contenir du texte et des images (format OpenAI-like)
-    else if (Array.isArray(msg.content)) {
+    } else if (Array.isArray(msg.content)) {
       for (const item of msg.content) {
         if (item.type === "text") {
           let text = item.text;
           if (role === "user" && systemText) {
-            text = systemText + "\n\n" + text;
+            text = `Instructions: ${systemText}\n\nUser Message: ${text}`;
             systemText = "";
           }
           parts.push({ text });
         } else if (item.type === "image_url") {
-          // Format attendu: data:image/jpeg;base64,...
-          const dataUrl = item.image_url.url;
-          const match = dataUrl.match(/^data:(image\/\w+);base64,(.+)$/);
-          if (match) {
-            parts.push({
-              inlineData: {
-                mimeType: match[1],
-                data: match[2],
-              },
-            });
-          }
+          // Extract base64 from data URL
+          const b64 = item.image_url.url.split(",")[1];
+          const mime = item.image_url.url.split(";")[0].split(":")[1];
+          parts.push({
+            inline_data: {
+              mime_type: mime,
+              data: b64,
+            },
+          });
         }
       }
     }
-
     contents.push({ role, parts });
   }
-
-  return {
-    contents,
-    generationConfig: {
-      maxOutputTokens: generationConfig.maxOutputTokens ?? 2048,
-      temperature: generationConfig.temperature ?? 0.3,
-    },
-  };
+  return { contents };
 }
 
-/**
- * Appel à l'API Gemini (Gemma 3 27B).
- */
-async function chatCompletionGemini(messages, options = {}) {
-  const { googleKey } = getConfig();
-  const maxTokens = options.max_tokens ?? 2048;
-  const temperature = options.temperature ?? 0.3;
-  const timeoutMs = options.timeoutMs ?? 120_000; // Augmenté à 2 minutes pour l'OCR
+async function chatGoogleGemini(messages, options, key) {
+  const body = toGeminiFormat(messages);
+  
+  if (options.temperature !== undefined) {
+    body.generationConfig = { temperature: options.temperature };
+  }
+  
+  if (options.max_tokens !== undefined) {
+    body.generationConfig = body.generationConfig || {};
+    body.generationConfig.maxOutputTokens = options.max_tokens;
+  }
 
+  // Primary model: Gemma 3 27B
+  const model = "gemma-3-27b-it";
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+
+  const timeoutMs = options.timeoutMs ?? 120_000;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  const id = setTimeout(() => controller.abort(), timeoutMs);
 
-  const url = `${GEMINI_BASE}/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(googleKey)}`;
-  const body = toGeminiPayload(messages, {
-    maxOutputTokens: maxTokens,
-    temperature,
-  });
-
-  let res;
   try {
-    res = await fetch(url, {
+    const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
-  } catch (err) {
-    clearTimeout(timeoutId);
-    if (err?.name === "AbortError") {
-      throw new Error(
-        "Google API (Gemma) did not respond in time. Check your GOOGLE_API_KEY."
-      );
+    clearTimeout(id);
+
+    if (!res.ok) {
+      const errText = await res.text();
+      if (res.status === 403) throw new Error("Google API (Gemma 3) key error or unauthorized.");
+      if (res.status === 404) throw new Error("Gemma 3 27B model not found.");
+      throw new Error(`Google Gemini API error ${res.status}: ${errText}`);
     }
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!text) {
+      const reason = data.candidates?.[0]?.finishReason || "unknown reason";
+      throw new Error(`Google Gemini API (Gemma 3): no text returned (${reason})`);
+    }
+    return text;
+  } catch (err) {
+    if (err.name === "AbortError") throw new Error("Google API (Gemma 3) timeout.");
     throw err;
   }
-  clearTimeout(timeoutId);
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Google Gemini API error ${res.status}: ${errText}`);
-  }
-
-  const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (text == null) {
-    const reason = data.candidates?.[0]?.finishReason || data.promptFeedback?.blockReason || "unknown";
-    throw new Error(`Google Gemini API: pas de texte (${reason})`);
-  }
-  return text.trim();
 }
 
 /**
- * Appel à une API compatible OpenAI (chat completions).
+ * Perform OCR on image (base64) via Gemma 3 (Vision).
  */
-async function chatCompletionOpenAI(messages, options = {}) {
-  const { apiKey, baseUrl, isLocal } = getConfig();
-  const model = options.model || process.env.OPENAI_MODEL || (isLocal ? "llama3.2" : "gpt-4o-mini");
-  const maxTokens = options.max_tokens ?? 2048;
-  const temperature = options.temperature ?? 0.3;
-  const timeoutMs = options.timeoutMs ?? 90_000;
-
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-
-  const headers = {
-    "Content-Type": "application/json",
-    ...(apiKey && { Authorization: `Bearer ${apiKey}` }),
-  };
-
-  let res;
-  try {
-    res = await fetch(`${baseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model,
-        messages,
-        max_tokens: maxTokens,
-        temperature,
-      }),
-      signal: controller.signal,
-    });
-  } catch (err) {
-    if (err?.name === "AbortError") {
-      throw new Error(
-        "The LLM server did not respond in time. Check your configuration (API key or Ollama)."
-      );
-    }
-    throw err;
-  } finally {
-    clearTimeout(timeoutId);
-  }
-
-  if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`LLM API error ${res.status}: ${errText}`);
-  }
-
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (content == null) {
-    throw new Error("LLM API: no content in response");
-  }
-  return content.trim();
-}
-
-/**
- * Effectue l'OCR d'une image (base64) via Gemma 3 (Vision).
- * @param {string} base64DataUrl - "data:image/jpeg;base64,..."
- */
-export async function performOCR(base64DataUrl) {
-  const prompt = "Veuillez extraire tout le texte lisible de ce document médical. Ne faites aucun commentaire, ne résumez pas, extrayez simplement le texte tel quel (OCR).";
+export async function runOCR(imageDataUrl) {
   const messages = [
     {
       role: "user",
       content: [
-        { type: "image_url", image_url: { url: base64DataUrl } },
-        { type: "text", text: prompt },
+        { type: "text", text: "Please extract all readable text from this medical document. Do not make any comments, do not summarize, just extract the text as is (OCR)." },
+        { type: "image_url", image_url: { url: imageDataUrl } },
       ],
     },
   ];
-  return chatCompletion(messages, { max_tokens: 2048, temperature: 0 }); // Température à 0 pour plus de précision
-}
 
-/**
- * @param {Array<{ role: 'system' | 'user' | 'assistant'; content: string | Array<any> }>} messages
- * @param {{ model?: string; max_tokens?: number; temperature?: number }} options
- * @returns {Promise<string>} contenu du premier choix
- */
-export async function chatCompletion(messages, options = {}) {
-  const { googleKey, apiKey, isLocal } = getConfig();
-
-  if (googleKey) {
-    return chatCompletionGemini(messages, options);
-  }
-
-  if (!apiKey && !isLocal) {
-    throw new Error(
-      "Set GOOGLE_API_KEY (Google AI Studio) for Gemma 3 27B, or OPENAI_API_KEY / Ollama for another model."
-    );
-  }
-
-  return chatCompletionOpenAI(messages, options);
+  return chatCompletion(messages, { max_tokens: 2048, temperature: 0 });
 }

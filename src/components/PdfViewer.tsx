@@ -4,9 +4,9 @@ import { extractTextFromPdf } from "@/lib/pdfText";
 
 interface PdfViewerProps {
   onUnderstandReport?: (reportText: string) => void;
-  /** Images d'imagerie (radio/IRM) ajoutées en plus du rapport — pour les légendes. Appelé avec les data URLs. */
+  /** Imaging images (X-ray/MRI) added in addition to the report — for legends. Called with data URLs. */
   onLegendImages?: (dataUrls: string[]) => void;
-  /** Source image du rapport quand le document est une photo (pas un PDF). Permet au parent d’appeler l’API légendes. */
+  /** Report image source when the document is a photo (not a PDF). Allows parent to call legends API. */
   onReportImageSource?: (dataUrl: string | null) => void;
   isSubmitting?: boolean;
 }
@@ -167,7 +167,7 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
         />
       </div>
 
-      {/* Content (scrollable) + bouton fixe en bas */}
+      {/* Content (scrollable) + fixed bottom button */}
       <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
         <div className="flex-1 min-h-0 overflow-auto bg-gm-gradient-soft">
           {pdfUrl ? (
@@ -209,7 +209,7 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
           )}
         </div>
 
-        {/* Images d'imagerie — fixe en bas, toujours visible */}
+        {/* Imaging images — fixed bottom, always visible */}
         <div className="flex-shrink-0 border-t border-border/60 p-3 bg-card/80">
           <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1.5">
             <ImagePlus className="w-3.5 h-3.5" />
@@ -218,7 +218,7 @@ const PdfViewer = ({ onUnderstandReport, onLegendImages, onReportImageSource, is
           <div className="flex flex-wrap gap-2 items-start">
             {legendDataUrls.map((url, i) => (
               <div key={i} className="relative group">
-                <img src={url} alt={`Imagerie ${i + 1}`} className="w-16 h-16 object-cover rounded-lg border border-border" />
+                <img src={url} alt={`Imaging ${i + 1}`} className="w-16 h-16 object-cover rounded-lg border border-border" />
                 <button type="button" onClick={() => removeLegendImage(i)} className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center opacity-80 group-hover:opacity-100" aria-label="Remove">
                   <X className="w-3 h-3" />
                 </button>
